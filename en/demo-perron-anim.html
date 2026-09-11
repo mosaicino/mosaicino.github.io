@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perron Tree &middot; The Needle Turning</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#16223a; --line:#2a3c5e; --text:#e6ecf5;
+    --muted:#93a4c0; --accent:#f7c579; --orange:#e67e22; --red:#ef6a5e;
+    --blue:#7ee0c8; --green:#2ecc8a;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  h1{ text-align:center; font-size:18px; font-weight:600; margin:14px 0 2px; color:#fff; }
+  .sub{ text-align:center; color:var(--muted); font-size:12.5px; margin:0 16px 12px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    max-width:1100px; margin:0 auto; padding:0 16px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; }
+  .panel h3{ font-size:13px; margin:2px 6px 8px; color:#fff; font-weight:600; }
+  canvas{ display:block; width:100%; height:auto; background:#101a2c; border-radius:4px; }
+  #phase{ text-align:center; font-size:14px; margin:12px 16px 4px; min-height:1.4em; }
+  #readout{ text-align:center; font-size:12.5px; color:var(--muted);
+    margin:0 16px 10px; font-variant-numeric:tabular-nums; line-height:1.6; }
+  .controls{ max-width:1100px; margin:0 auto 8px; padding:0 16px 8px;
+    display:flex; flex-wrap:wrap; gap:12px 16px; align-items:center; justify-content:center; }
+  .ctrl{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .ctrl input[type=range]{ width:140px; accent-color:var(--blue); }
+  .val{ color:var(--accent); min-width:36px; display:inline-block; font-variant-numeric:tabular-nums; }
+  button{ font:inherit; font-size:13px; padding:7px 14px; border-radius:5px;
+    border:1px solid var(--line); background:#1e2e4d; color:#fff; cursor:pointer; }
+  button:hover{ border-color:var(--accent); }
+  button.primary{ background:#2a3d62; border-color:var(--blue); }
+  .tip{ max-width:1100px; margin:0 auto 24px; padding:0 16px;
+    font-size:12.5px; color:var(--muted); line-height:1.65; text-align:center; }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:var(--panel,#16223a);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="fractals.html">&larr; Fractals &amp; Dimension</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+<h1>Perron Tree: area is only generated at the instant of turning</h1>
+<p class="sub" id="sup">Orange wedge = area genuinely swept　　Thin grey line = gliding path (zero area, free)</p>
+
+<div class="grid">
+  <div class="panel">
+    <h3>&#9312; Close to the tree: area is only swept here</h3>
+    <canvas id="cvL" width="520" height="420"></canvas>
+  </div>
+  <div class="panel">
+    <h3>&#9313; Full view: the long glide sweeps no area at all</h3>
+    <canvas id="cvR" width="520" height="420"></canvas>
+  </div>
+</div>
+
+<div id="phase"></div>
+<div id="readout"></div>
+
+<div class="controls">
+  <div class="ctrl">n <input id="nSlider" type="range" min="1" max="5" value="3"><span class="val" id="nVal">3</span></div>
+  <div class="ctrl">α <input id="aSlider" type="range" min="0.50" max="1.00" step="0.01" value="0.80"><span class="val" id="aVal">0.80</span></div>
+  <div class="ctrl">φ° <input id="pSlider" type="range" min="0.5" max="8" step="0.5" value="2"><span class="val" id="pVal">2.0</span></div>
+  <button class="primary" id="btnSpace">Space &middot; next cycle</button>
+  <button id="btnStep">. step</button>
+  <button id="btnBack">, back</button>
+  <button id="btnPlay">Enter &middot; play</button>
+  <button id="btnReset">R restart</button>
+</div>
+<p class="tip">
+  Space advances one cycle (rotation inside a shoot + one long glide). Enter plays continuously. Area is only generated inside the orange wedge;
+  when the needle shoots off-screen it's gliding, at zero cost.
+</p>
+
+<script>
+const BASE_W = 1, APEX_H = 1;
+function baseTriangles(n){
+  const m = 2 ** n, apex = [BASE_W/2, APEX_H], tris = [];
+  for (let i = 0; i < m; i++)
+    tris.push([[i*BASE_W/m, 0], [(i+1)*BASE_W/m, 0], apex.slice()]);
+  return tris;
+}
+function translateTri(tri, dx){ return tri.map(p => [p[0]+dx, p[1]]); }
+function perronPieces(n, alpha){
+  let clusters = baseTriangles(n).map(t => [t]);
+  let w = BASE_W / 2 ** n;
+  for (let level = 0; level < n; level++){
+    const t = (1 - alpha) * w;
+    const next = [];
+    for (let i = 0; i < clusters.length; i += 2){
+      const left = clusters[i].map(tri => translateTri(tri, t));
+      const right = clusters[i+1].map(tri => translateTri(tri, -t));
+      next.push(left.concat(right));
+    }
+    clusters = next;
+    w = 2 * alpha * w;
+  }
+  const pieces = [];
+  for (const c of clusters) for (const tri of c) pieces.push(tri);
+  return pieces;
+}
+function unit(th){ return [Math.cos(th), Math.sin(th)]; }
+function lerp(a, b, s){ return a + (b - a) * s; }
+function lerp2(P, Q, s){ return [lerp(P[0], Q[0], s), lerp(P[1], Q[1], s)]; }
+function wrapPi(d){
+  while (d <= -Math.PI) d += 2 * Math.PI;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  return d;
+}
+function colorFor(i, m){
+  const t = m > 1 ? i / (m - 1) : 0;
+  return `hsl(${(260 - t * 260).toFixed(0)},78%,62%)`;
+}
+function bboxOf(tris){
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  for (const tri of tris) for (const p of tri){
+    if (p[0]<minx) minx=p[0]; if (p[0]>maxx) maxx=p[0];
+    if (p[1]<miny) miny=p[1]; if (p[1]>maxy) maxy=p[1];
+  }
+  return {minx,maxx,miny,maxy};
+}
+function mapper(bounds, padFrac, W, H){
+  const w = Math.max(bounds.maxx-bounds.minx, 1e-6);
+  const h = Math.max(bounds.maxy-bounds.miny, 1e-6);
+  const pad = padFrac * Math.max(w, h);
+  const dataW = w + 2*pad, dataH = h + 2*pad;
+  const scale = Math.min(W/dataW, H/dataH);
+  const offX = (W - dataW*scale)/2;
+  const offY = (H - dataH*scale)/2;
+  return p => [
+    (p[0]-bounds.minx+pad)*scale + offX,
+    H - ((p[1]-bounds.miny+pad)*scale + offY)
+  ];
+}
+
+function describeSprout(tri){
+  let apex = tri[0];
+  for (const p of tri) if (p[1] > apex[1]) apex = p;
+  const base = tri.filter(p => p !== apex);
+  const thA = Math.atan2(base[0][1]-apex[1], base[0][0]-apex[0]);
+  const thB = Math.atan2(base[1][1]-apex[1], base[1][0]-apex[0]);
+  const d = wrapPi(thB - thA);
+  const LEN = Math.hypot(base[0][0]-apex[0], base[0][1]-apex[1]);
+  return { apex, th0: thA, th1: thA + d, LEN };
+}
+
+function stepCost(st, L){
+  if (st.kind !== "rot") return 0;
+  return Math.abs(st.th1 - st.th0) * L * L / 2;
+}
+
+function buildPlan(n, alpha, phiDeg){
+  const pieces = perronPieces(n, alpha);
+  const sprouts = pieces.map(describeSprout);
+  const LEN = sprouts[0].LEN;
+  const phi = phiDeg * Math.PI / 180;
+  const plan = [];
+  const M = sprouts.length;
+  for (let i = 0; i < M; i++){
+    const s = sprouts[i];
+    const sweep = s.th1 - s.th0;
+    const sign = Math.sign(sweep) || 1;
+    const take = Math.max(Math.abs(sweep) - phi, 0);
+    const mid = s.th0 + sign * take;
+    plan.push({ kind:"rot", P0:s.apex, th0:s.th0, th1:mid, tag:"sprout" });
+    if (i < M - 1){
+      const nxt = sprouts[i+1];
+      const thS = mid;
+      const far = [
+        s.apex[0] + 2.4 * LEN * Math.cos(thS),
+        s.apex[1] + 2.4 * LEN * Math.sin(thS)
+      ];
+      plan.push({ kind:"slide", P0:s.apex, P1:far, th0:thS, tag:"join" });
+      plan.push({ kind:"rot", P0:far, th0:thS, th1:thS + sign*phi, tag:"join" });
+      const thJ = thS + sign*phi;
+      plan.push({ kind:"slide", P0:far, P1:nxt.apex, th0:thJ, tag:"join" });
+    } else {
+      plan.push({ kind:"rot", P0:s.apex, th0:mid, th1:s.th1, tag:"sprout" });
+    }
+  }
+  return { plan, pieces, sprouts, LEN };
+}
+
+function needleAt(st, s, LEN){
+  if (st.kind === "rot"){
+    const th = lerp(st.th0, st.th1, s);
+    const P = st.P0;
+    const u = unit(th);
+    return { P, Q:[P[0]+LEN*u[0], P[1]+LEN*u[1]], th };
+  }
+  const th = st.th0;
+  const P = lerp2(st.P0, st.P1, s);
+  const u = unit(th);
+  return { P, Q:[P[0]+LEN*u[0], P[1]+LEN*u[1]], th };
+}
+
+function buildFrames(plan){
+  const frames = [];
+  plan.forEach((st, k) => {
+    const f = st.kind === "rot" ? Math.max(8, Math.ceil(Math.abs(st.th1-st.th0)*50)) : 10;
+    for (let j = 0; j < f; j++) frames.push({ k, s: j/f });
+  });
+  frames.push({ k: plan.length-1, s: 1 });
+  return frames;
+}
+
+const cvL = document.getElementById("cvL"), ctxL = cvL.getContext("2d");
+const cvR = document.getElementById("cvR"), ctxR = cvR.getContext("2d");
+const phaseEl = document.getElementById("phase");
+const readoutEl = document.getElementById("readout");
+const nSlider = document.getElementById("nSlider");
+const aSlider = document.getElementById("aSlider");
+const pSlider = document.getElementById("pSlider");
+
+let state = null;
+let viewR = null;
+
+function rebuild(){
+  const n = +nSlider.value, alpha = +aSlider.value, phi = +pSlider.value;
+  nVal.textContent = n;
+  aVal.textContent = alpha.toFixed(2);
+  pVal.textContent = phi.toFixed(1);
+  const built = buildPlan(n, alpha, phi);
+  const frames = buildFrames(built.plan);
+  const cycleIdx = built.plan.map((st,k)=>st.tag==="sprout"?k:-1).filter(k=>k>=0);
+  const stepIdx = built.plan.map((_,k)=>k);
+  const tb = bboxOf(built.pieces);
+  state = {
+    n, alpha, phi, ...built, frames,
+    cycleIdx, stepIdx,
+    cur: 0, target: 0, running: false,
+    tb, M: built.pieces.length
+  };
+  viewR = null;
+  document.getElementById("sup").previousElementSibling;
+  document.querySelector("h1").textContent =
+    `Perron Tree: ${state.M} shoots, α=${alpha.toFixed(2)}, φ=${phi.toFixed(1)}°`;
+  render();
+}
+
+function drawTree(ctx, M, pieces){
+  pieces.forEach((tri, i) => {
+    ctx.beginPath();
+    tri.forEach((p, idx) => {
+      const q = M(p);
+      if (idx===0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = colorFor(i, pieces.length);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function drawSector(ctx, M, P, th0, th1, L){
+  const steps = Math.max(10, Math.ceil(Math.abs(th1-th0)*48));
+  ctx.beginPath();
+  const p0 = M(P);
+  ctx.moveTo(p0[0], p0[1]);
+  for (let i=0;i<=steps;i++){
+    const th = lerp(th0, th1, i/steps);
+    const q = M([P[0]+L*Math.cos(th), P[1]+L*Math.sin(th)]);
+    ctx.lineTo(q[0], q[1]);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "rgba(230,126,34,0.42)";
+  ctx.strokeStyle = "#b9651a";
+  ctx.lineWidth = 0.6;
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawScene(ctx, W, H, bounds, pad, needle, sectors, spikes, offHint){
+  ctx.clearRect(0,0,W,H);
+  const M = mapper(bounds, pad, W, H);
+  drawTree(ctx, M, state.pieces);
+  ctx.strokeStyle = "rgba(147,164,192,0.45)";
+  ctx.lineWidth = 0.8;
+  for (const sp of spikes){
+    const a = M(sp[0]), b = M(sp[1]);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  }
+  for (const sec of sectors)
+    drawSector(ctx, M, sec.P, sec.th0, sec.th1, state.LEN);
+  const P = M(needle.P), Q = M(needle.Q);
+  ctx.strokeStyle = "#f2f6ff";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(P[0], P[1]); ctx.lineTo(Q[0], Q[1]); ctx.stroke();
+  ctx.fillStyle = "#ef6a5e";
+  ctx.beginPath(); ctx.arc(P[0], P[1], 4.2, 0, 7); ctx.fill();
+  if (offHint){
+    ctx.fillStyle = "rgba(126,224,200,0.8)";
+    ctx.font = "13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Needle has glided off-screen → gliding, zero area", W/2, H/2);
+  }
+}
+
+function render(){
+  const { plan, frames, LEN, tb } = state;
+  const fi = Math.min(state.cur, frames.length-1);
+  const { k, s } = frames[fi];
+  const st = plan[k];
+  const needle = needleAt(st, s, LEN);
+
+  const sectors = [];
+  for (let i = 0; i < k; i++){
+    if (plan[i].kind === "rot")
+      sectors.push({ P: plan[i].P0, th0: plan[i].th0, th1: plan[i].th1 });
+  }
+  if (st.kind === "rot")
+    sectors.push({ P: st.P0, th0: st.th0, th1: lerp(st.th0, st.th1, s) });
+
+  const spikes = [];
+  for (let i = 0; i < k; i++){
+    if (plan[i].kind === "slide"){
+      const u = unit(plan[i].th0);
+      spikes.push([plan[i].P0, [plan[i].P1[0]+LEN*u[0], plan[i].P1[1]+LEN*u[1]]]);
+    }
+  }
+  if (st.kind === "slide"){
+    const u = unit(st.th0);
+    spikes.push([st.P0, [needle.P[0]+LEN*u[0], needle.P[1]+LEN*u[1]]]);
+  }
+
+  let aSp=0, aJn=0;
+  for (let i=0;i<k;i++){
+    const c = stepCost(plan[i], LEN);
+    if (plan[i].tag==="sprout") aSp += c; else aJn += c;
+  }
+  const cNow = stepCost(st, LEN) * s;
+  if (st.tag==="sprout") aSp += cNow; else aJn += cNow;
+
+  drawScene(ctxL, cvL.width, cvL.height, tb, 0.22, needle, sectors, spikes, false);
+
+  const pts = [needle.P, needle.Q, [tb.minx,tb.miny],[tb.maxx,tb.maxy]];
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  for (const p of pts){
+    if (p[0]<minx) minx=p[0]; if (p[0]>maxx) maxx=p[0];
+    if (p[1]<miny) miny=p[1]; if (p[1]>maxy) maxy=p[1];
+  }
+  const mrg = 0.22 * Math.max(maxx-minx, maxy-miny, 0.3);
+  const tgt = {minx:minx-mrg, maxx:maxx+mrg, miny:miny-mrg, maxy:maxy+mrg};
+  if (!viewR) viewR = Object.assign({}, tgt);
+  for (const key of ["minx","maxx","miny","maxy"])
+    viewR[key] += 0.14 * (tgt[key] - viewR[key]);
+  drawScene(ctxR, cvR.width, cvR.height, viewR, 0.06, needle, sectors, spikes, false);
+
+  const xl = {minx: tb.minx - 0.22*(tb.maxx-tb.minx), maxx: tb.maxx + 0.22*(tb.maxx-tb.minx),
+              miny: tb.miny - 0.22*(tb.maxy-tb.miny), maxy: tb.maxy + 0.22*(tb.maxy-tb.miny)};
+  const off = !(needle.P[0]>xl.minx && needle.P[0]<xl.maxx && needle.P[1]>xl.miny && needle.P[1]<xl.maxy);
+  if (off){
+    ctxL.fillStyle = "rgba(126,224,200,0.85)";
+    ctxL.font = "14px sans-serif";
+    ctxL.textAlign = "center";
+    ctxL.fillText("Needle has glided off-screen → gliding, zero area", cvL.width/2, cvL.height/2);
+  }
+
+  const sproutDone = plan.slice(0, k + (s>=1?1:0)).filter(p => p.tag==="sprout").length;
+  if (st.tag === "sprout"){
+    phaseEl.style.color = "#ef6a5e";
+    phaseEl.textContent = `Rotating inside a shoot  ${Math.min(sproutDone+1, state.M)} / ${state.M}`;
+  } else if (st.kind === "rot"){
+    phaseEl.style.color = "#c39bd3";
+    phaseEl.textContent = `Filling the far wedge +φ  → preparing the next shoot`;
+  } else {
+    phaseEl.style.color = "#7ee0c8";
+    phaseEl.textContent = `Pál join (gliding, sweeps no area)`;
+  }
+  const tot = aSp + aJn;
+  readoutEl.textContent =
+    `Rotation inside shoots ${aSp.toFixed(4)}    Cost of joins ${aJn.toFixed(4)}    Non-overlapping total ${tot.toFixed(4)}`;
+
+  const cyc = state.cycleIdx.filter(idx => {
+    const f0 = frames.findIndex(fr => fr.k === idx);
+    return f0 <= fi;
+  }).length;
+  document.getElementById("btnPlay").textContent = state.running ? "Pause" : "Enter · play";
+}
+
+function frameOfStep(k){
+  return state.frames.findIndex(fr => fr.k === k);
+}
+function nextCycle(){
+  const fi = state.cur;
+  const k = state.frames[fi].k;
+  const nxt = state.cycleIdx.find(i => i > k);
+  if (nxt == null) { state.target = state.frames.length-1; return; }
+  state.target = frameOfStep(nxt);
+}
+function nextStep(){
+  const k = state.frames[state.cur].k;
+  const nxt = k + 1;
+  state.target = nxt >= state.plan.length ? state.frames.length-1 : frameOfStep(nxt);
+}
+function prevStep(){
+  const k = state.frames[state.cur].k;
+  const prv = Math.max(0, k - 1);
+  state.cur = state.target = frameOfStep(prv);
+}
+
+nSlider.oninput = aSlider.oninput = pSlider.oninput = rebuild;
+document.getElementById("btnSpace").onclick = () => { state.running=false; nextCycle(); };
+document.getElementById("btnStep").onclick = () => { state.running=false; nextStep(); };
+document.getElementById("btnBack").onclick = () => { state.running=false; prevStep(); render(); };
+document.getElementById("btnPlay").onclick = () => { state.running = !state.running; };
+document.getElementById("btnReset").onclick = () => { state.cur=state.target=0; state.running=false; render(); };
+
+window.addEventListener("keydown", ev => {
+  if (ev.key === " ") { ev.preventDefault(); state.running=false; nextCycle(); }
+  else if (ev.key === ".") { state.running=false; nextStep(); }
+  else if (ev.key === ",") { state.running=false; prevStep(); render(); }
+  else if (ev.key === "Enter") { state.running = !state.running; }
+  else if (ev.key === "r" || ev.key === "R") { state.cur=state.target=0; state.running=false; render(); }
+});
+
+function tick(){
+  if (!state) return;
+  if (state.running){
+    state.cur = (state.cur + 1) % state.frames.length;
+    state.target = state.cur;
+  } else if (state.cur < state.target){
+    state.cur++;
+  }
+  render();
+  requestAnimationFrame(tick);
+}
+
+rebuild();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rendering a Triangle · Cross Product Shapes It, Dot Product Shades It</title>
+<style>
+:root{
+  --field:#0f1826;
+  --panel:#16223a;
+  --panel-2:#1c2b47;
+  --line:#2a3c5e;
+  --fg:#e6ecf5;
+  --fg-dim:#93a4c0;
+  --amber:#f0a63c;
+  --amber-soft:#f7c579;
+  --violet:#b388ff;
+  --violet-soft:#d3bcff;
+  --cyan:#3ec8d8;
+  --coral:#ef6a5e;
+  --blue:#5aa9f0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1100px 480px at 15% -10%, #1d2140 0%, transparent 60%),
+    radial-gradient(1000px 480px at 88% 108%, #23202e 0%, transparent 62%),
+    var(--field);
+  color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;min-height:100vh;
+}
+.masthead{padding:22px 26px 14px;border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 22px}
+.masthead h1{font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;
+  font-size:23px;font-weight:600;margin:0}
+.masthead p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:64ch}
+
+.pipeline{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:12px 26px;border-bottom:1px solid var(--line);
+  font-size:12.5px;color:var(--fg-dim);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.pipeline b{font-weight:600}
+.pipeline .step{padding:3px 10px;border:1px solid var(--line);border-radius:2px;background:var(--panel)}
+.pipeline .step.x{color:var(--violet-soft);border-color:#4a3a6e}
+.pipeline .step.d{color:var(--amber-soft);border-color:#6b5220}
+.pipeline .arrow{color:#4d5f7d}
+
+.stage{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+.side{padding:20px 24px 26px;min-width:0}
+.side.left{border-right:1px solid var(--line)}
+.side-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.side-head h2{font-family:Georgia,"Songti SC",serif;font-size:18px;margin:0;font-weight:600}
+.side.left .side-head h2{color:var(--violet-soft)}
+.side.right .side-head h2{color:var(--amber-soft)}
+.side-head .eq{font-size:13.5px;color:var(--fg-dim);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.side>p.blurb{margin:0 0 14px;color:var(--fg-dim);font-size:13.5px;max-width:48ch}
+
+.viewport{position:relative;width:100%;aspect-ratio:1/1;min-height:300px;
+  border:1px solid var(--line);border-radius:3px;overflow:hidden;
+  background:linear-gradient(180deg,#0d1522 0%,#111d30 100%);touch-action:none}
+.viewport.spin{cursor:grab}
+.viewport.spin:active{cursor:grabbing}
+.viewport canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:10px;bottom:8px;font-size:11.5px;color:#63748f;pointer-events:none}
+.tag{position:absolute;right:10px;top:9px;font-size:11.5px;color:#63748f;pointer-events:none;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.cull{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(15,24,38,.72);color:var(--coral);font-size:15px;letter-spacing:.02em;text-align:center;padding:20px}
+.cull.on{display:flex}
+
+.readout{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;
+  display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.readout .big{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.side.left .readout .big{color:var(--violet)}
+.side.right .readout .big{color:var(--amber)}
+.readout .expl{color:var(--fg-dim);font-size:12.5px;margin-left:auto;text-align:right;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5}
+
+.controls{margin-top:16px;display:grid;gap:12px}
+.ctl{display:grid;grid-template-columns:104px 1fr 66px;align-items:center;gap:12px}
+.ctl label{font-size:13.5px;color:var(--fg-dim)}
+.ctl output{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  margin-top:-6.5px;border:none;cursor:pointer;background:var(--fg)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;border:none;cursor:pointer;background:var(--fg)}
+.side.left input[type=range]::-webkit-slider-thumb{background:var(--violet)}
+.side.left input[type=range]::-moz-range-thumb{background:var(--violet)}
+.side.right input[type=range]::-webkit-slider-thumb{background:var(--amber)}
+.side.right input[type=range]::-moz-range-thumb{background:var(--amber)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:3px}
+
+.switch-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--fg-dim)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{background:transparent;border:none;color:var(--fg-dim);font:inherit;font-size:12.5px;
+  padding:5px 11px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--panel-2);color:var(--fg)}
+.check{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--fg-dim)}
+.check input{accent-color:var(--amber);width:15px;height:15px}
+
+.probe{
+  margin-top:12px;border:1px solid var(--line);border-radius:3px;background:var(--panel);
+  padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px;color:var(--fg-dim);min-height:76px;line-height:1.75;
+}
+.probe .row{display:flex;justify-content:space-between;gap:12px}
+.probe .pos{color:var(--fg)}
+.probe .neg{color:var(--coral)}
+.probe .verdict{color:var(--amber-soft)}
+
+.notes{border-top:1px solid var(--line);padding:24px 26px 40px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:26px 34px}
+.notes section h3{font-family:Georgia,"Songti SC",serif;font-size:16px;margin:0 0 6px;font-weight:600}
+.notes section p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:52ch}
+.notes .k-violet{color:var(--violet-soft)}
+.notes .k-amber{color:var(--amber-soft)}
+.notes code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  color:var(--fg);background:var(--panel);padding:1px 5px;border-radius:2px}
+.fallback{padding:40px 26px;color:var(--coral)}
+
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr}
+  .side.left{border-right:none;border-bottom:1px solid var(--line)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 26px;border-bottom:1px solid var(--line,#2a3c5e);
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+}
+.backbar a{color:#93a4c0;text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:#e6ecf5;border-bottom-color:#e6ecf5}
+.backbar .sep{color:#3d5170}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="vectors.html">&larr; Vectors &amp; Space</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<header class="masthead">
+  <h1>Rendering a Triangle</h1>
+  <p>Every frame in a game is these two steps repeated: the cross product decides which pixels get covered, the dot product decides how bright they are. Colours follow the previous demo &mdash; violet is the cross product, amber is the dot product.</p>
+</header>
+
+<div class="pipeline">
+  <span class="step">3D vertices</span><span class="arrow">→</span>
+  <span class="step">Perspective projection</span><span class="arrow">→</span>
+  <span class="step x">Cross product: normal &middot; signed area</span><span class="arrow">→</span>
+  <span class="step x">Backface culling &middot; rasterisation</span><span class="arrow">→</span>
+  <span class="step d">Dot product: N&middot;L shading</span><span class="arrow">→</span>
+  <span class="step">Pixels</span>
+</div>
+
+<main class="stage">
+
+  <!-- ============ left: world space, cross product ============ -->
+  <div class="side left">
+    <div class="side-head">
+      <h2>World Space &middot; Cross Product</h2>
+      <span class="eq">n = (B−A) × (C−A)</span>
+    </div>
+    <p class="blurb">The triangle sits in space; the virtual camera is off to the right and forward. The three yellow lines are the vertices' projection paths toward the camera &mdash; where they land on the near plane gives screen coordinates. Cross two edges and the normal falls right out.</p>
+
+    <div class="viewport spin" id="vp3d">
+      <canvas id="cv3d"></canvas>
+      <span class="hint">Drag to rotate &middot; scroll to zoom</span>
+      <span class="tag">world space</span>
+    </div>
+
+    <div class="readout">
+      <span class="big" id="areaVal">0.00</span>
+      <span style="color:var(--fg-dim);font-size:13px">area = &frac12;|n|</span>
+      <span class="expl" id="normalExpr">n = (0, 0, 0)</span>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sYaw">Rotate around vertical axis</label>
+        <input type="range" id="sYaw" min="-180" max="180" step="1" value="26">
+        <output id="oYaw">26°</output>
+      </div>
+      <div class="ctl">
+        <label for="sPitch">Pitch</label>
+        <input type="range" id="sPitch" min="-80" max="80" step="1" value="14">
+        <output id="oPitch">14°</output>
+      </div>
+      <div class="switch-row">
+        <label class="check"><input type="checkbox" id="cRays" checked> Show projection rays</label>
+        <label class="check"><input type="checkbox" id="cCull" checked> Enable backface culling</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ right: screen space, dot product ============ -->
+  <div class="side right">
+    <div class="side-head">
+      <h2>Screen Space &middot; Dot Product</h2>
+      <span class="eq">brightness = max(0, N&middot;L)</span>
+    </div>
+    <p class="blurb">The projected triangle lands on a pixel grid. Each pixel is tested with three cross products to see if it's inside, then a dot product decides its brightness. Hover over the grid to see these four numbers.</p>
+
+    <div class="viewport" id="vpPix">
+      <canvas id="cvPix"></canvas>
+      <span class="tag">screen space</span>
+      <div class="cull" id="cullMsg">Signed area is negative &rarr; back face toward the camera<br>The whole triangle is culled, not a single pixel is drawn</div>
+    </div>
+
+    <div class="readout">
+      <span class="big" id="ndlVal">0.00</span>
+      <span style="color:var(--fg-dim);font-size:13px">N·L</span>
+      <span class="expl" id="pixExpr">0 pixels covered</span>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sRes">Pixel resolution</label>
+        <input type="range" id="sRes" min="6" max="44" step="1" value="20">
+        <output id="oRes">20×20</output>
+      </div>
+      <div class="ctl">
+        <label for="sLAz">Light azimuth</label>
+        <input type="range" id="sLAz" min="-180" max="180" step="1" value="-35">
+        <output id="oLAz">−35°</output>
+      </div>
+      <div class="ctl">
+        <label for="sLEl">Light elevation</label>
+        <input type="range" id="sLEl" min="-80" max="80" step="1" value="34">
+        <output id="oLEl">34°</output>
+      </div>
+      <div class="switch-row">
+        <span>Shading</span>
+        <span class="seg" role="group" aria-label="shading mode">
+          <button data-mode="lambert" aria-pressed="true">N&middot;L shading</button>
+          <button data-mode="bary" aria-pressed="false">Barycentric coords</button>
+          <button data-mode="flat" aria-pressed="false">Coverage only</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="probe" id="probe">
+      <div class="row"><span>Hover over the pixel grid above</span></div>
+      <div class="row"><span>The three edge-function values for that pixel will show here</span></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="notes">
+  <section>
+    <h3 class="k-violet">The cross product does two jobs in the pipeline</h3>
+    <p>First, it gives the <b>normal</b> <code>n = (B&minus;A)&times;(C&minus;A)</code>, handed off to lighting. Second, it gives the <b>signed area</b>: its sign tells you whether the triangle faces the camera or away from it (back faces get thrown out immediately, cutting the drawing workload roughly in half), and its magnitude is used to compute barycentric coordinates &mdash; the three small triangles formed by the pixel point and the three edges, whose area ratios are the interpolation weights that vertex colours, texture coordinates, and depth all ride on.</p>
+  </section>
+  <section>
+    <h3 class="k-violet">Edge functions: the heart of rasterisation</h3>
+    <p>Deciding whether pixel P is inside the triangle needs no system of inequalities &mdash; just the z-component of three cross products, <code>(B&minus;A)&times;(P&minus;A)</code>. All three the same sign means inside; mixed signs means outside. These few multiplications and subtractions run in parallel across millions of pixels &mdash; exactly what the GPU is doing, every frame.</p>
+  </section>
+  <section>
+    <h3 class="k-amber">The dot product gives shading: a projection again</h3>
+    <p>Lambert's cosine law, <code>brightness &prop; max(0, N&middot;L)</code>: the more squarely a surface faces the light, the brighter it is; tilt it and it dims; turn it away and it goes to zero. It's the same formula as the electric flux <code>Φ = E&middot;A</code> from the last demo &mdash; both are asking "how much flux lands per unit area." Rotate the triangle and watch: the instant the normal passes 90°, brightness drops straight to zero.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+"use strict";
+
+if (typeof THREE === "undefined") {
+  document.querySelector(".stage").innerHTML =
+    '<div class="fallback">The 3D library failed to load. Check your connection and refresh.</div>';
+  return;
+}
+
+var COL = {
+  violet:0xb388ff, violetSoft:0xd3bcff, amber:0xf0a63c, amberSoft:0xf7c579,
+  cyan:0x3ec8d8, coral:0xef6a5e, blue:0x5aa9f0, dim:0x3d5170, faint:0x24334e, fg:0xe6ecf5
+};
+function $(id){ return document.getElementById(id); }
+
+/* ---------------- three.js helpers ---------------- */
+function makeArrow(color, shaftR, headLen, headR) {
+  shaftR = shaftR || 0.026; headLen = headLen || 0.20; headR = headR || 0.072;
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({color:color, roughness:0.45, metalness:0.05});
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(shaftR, shaftR, 1, 14), mat);
+  var head = new THREE.Mesh(new THREE.ConeGeometry(headR, headLen, 18), mat);
+  g.add(shaft); g.add(head);
+  g.userData = {shaft:shaft, head:head, headLen:headLen};
+  g.setVec = function (origin, dir, len) {
+    var d = dir.clone();
+    if (d.lengthSq() < 1e-12 || len < 1e-6) { this.visible = false; return; }
+    this.visible = true; d.normalize();
+    var hl = Math.min(this.userData.headLen, len * 0.45), sl = Math.max(len - hl, 1e-4);
+    this.userData.shaft.scale.set(1, sl, 1);
+    this.userData.shaft.position.set(0, sl/2, 0);
+    this.userData.head.scale.set(1, hl/this.userData.headLen, 1);
+    this.userData.head.position.set(0, sl + hl/2, 0);
+    this.position.copy(origin);
+    this.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), d);
+  };
+  return g;
+}
+function makeLabel(text, css, scale) {
+  scale = scale || 1;
+  var c = document.createElement("canvas"); c.width = 256; c.height = 96;
+  var x = c.getContext("2d");
+  x.font = "bold 58px -apple-system,'PingFang SC','Microsoft YaHei',sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.shadowColor = "rgba(0,0,0,.85)"; x.shadowBlur = 12; x.fillStyle = css;
+  x.fillText(text, 128, 50);
+  var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter;
+  var s = new THREE.Sprite(new THREE.SpriteMaterial({map:t, transparent:true, depthTest:false}));
+  s.scale.set(0.58*scale, 0.22*scale, 1); s.renderOrder = 999;
+  return s;
+}
+function dynLine(color, opacity, dashed) {
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+  var mat = dashed
+    ? new THREE.LineDashedMaterial({color:color, dashSize:0.12, gapSize:0.08, transparent:true, opacity:opacity})
+    : new THREE.LineBasicMaterial({color:color, transparent:true, opacity:opacity});
+  var l = new THREE.Line(geo, mat);
+  l.setEnds = function (a, b) {
+    var p = this.geometry.attributes.position;
+    p.setXYZ(0,a.x,a.y,a.z); p.setXYZ(1,b.x,b.y,b.z);
+    p.needsUpdate = true; this.geometry.computeBoundingSphere();
+    if (dashed) this.computeLineDistances();
+  };
+  return l;
+}
+function orbit(dom, camera, target, o) {
+  var st = {az:o.az, pol:o.pol, r:o.r};
+  function apply() {
+    st.pol = Math.max(0.12, Math.min(Math.PI-0.12, st.pol));
+    st.r = Math.max(o.min, Math.min(o.max, st.r));
+    camera.position.set(
+      target.x + st.r*Math.sin(st.pol)*Math.cos(st.az),
+      target.y + st.r*Math.cos(st.pol),
+      target.z + st.r*Math.sin(st.pol)*Math.sin(st.az));
+    camera.lookAt(target);
+  }
+  var drag=false, lx=0, ly=0;
+  dom.addEventListener("pointerdown", function(e){ drag=true; lx=e.clientX; ly=e.clientY; dom.setPointerCapture(e.pointerId); });
+  dom.addEventListener("pointermove", function(e){
+    if(!drag) return;
+    st.az -= (e.clientX-lx)*0.0075; st.pol -= (e.clientY-ly)*0.0075;
+    lx=e.clientX; ly=e.clientY; apply();
+  });
+  function stop(e){ drag=false; if(e.pointerId!==undefined && dom.hasPointerCapture && dom.hasPointerCapture(e.pointerId)) dom.releasePointerCapture(e.pointerId); }
+  dom.addEventListener("pointerup", stop);
+  dom.addEventListener("pointercancel", stop);
+  dom.addEventListener("wheel", function(e){ e.preventDefault(); st.r *= (1+Math.sign(e.deltaY)*0.09); apply(); }, {passive:false});
+  apply();
+  return st;
+}
+
+/* ---------------- scene setup ---------------- */
+var wrap3d = $("vp3d");
+var renderer = new THREE.WebGLRenderer({canvas:$("cv3d"), antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+var scene = new THREE.Scene();
+var cam = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+var dl1 = new THREE.DirectionalLight(0xffffff, 0.7); dl1.position.set(4,6,5); scene.add(dl1);
+var dl2 = new THREE.DirectionalLight(0x88aaff, 0.3); dl2.position.set(-5,-2,-4); scene.add(dl2);
+orbit(wrap3d, cam, new THREE.Vector3(0,0,1.4), {az:0.75, pol:1.22, r:8.6, min:4, max:18});
+
+var grid = new THREE.GridHelper(8, 16, COL.dim, COL.faint);
+grid.material.transparent = true; grid.material.opacity = 0.3;
+grid.position.y = -2.4; scene.add(grid);
+
+/* virtual camera (eye point) and near plane */
+var EYE = new THREE.Vector3(0, 0, 4.6);
+var NEAR = 2.0;                 /* distance from eye to near plane */
+var HALF = 1.35;                /* near-plane half-width */
+var PLANE_Z = EYE.z - NEAR;
+
+var eyeDot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16),
+  new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x333333}));
+eyeDot.position.copy(EYE); scene.add(eyeDot);
+scene.add(makeLabel("camera", "#e6ecf5", 0.9).translateX(EYE.x).translateY(EYE.y+0.34).translateZ(EYE.z));
+
+var nearFrame = new THREE.LineLoop(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-HALF,-HALF,PLANE_Z), new THREE.Vector3(HALF,-HALF,PLANE_Z),
+    new THREE.Vector3(HALF,HALF,PLANE_Z), new THREE.Vector3(-HALF,HALF,PLANE_Z)]),
+  new THREE.LineBasicMaterial({color:COL.amber, transparent:true, opacity:0.55}));
+scene.add(nearFrame);
+var nearFill = new THREE.Mesh(new THREE.PlaneGeometry(HALF*2, HALF*2),
+  new THREE.MeshBasicMaterial({color:0xf0a63c, transparent:true, opacity:0.05, side:THREE.DoubleSide}));
+nearFill.position.z = PLANE_Z; scene.add(nearFill);
+(function frustum(){
+  var c = [[-HALF,-HALF],[HALF,-HALF],[HALF,HALF],[-HALF,HALF]];
+  for (var i=0;i<4;i++){
+    var g = new THREE.BufferGeometry().setFromPoints([EYE, new THREE.Vector3(c[i][0], c[i][1], PLANE_Z)]);
+    scene.add(new THREE.Line(g, new THREE.LineBasicMaterial({color:COL.dim, transparent:true, opacity:0.35})));
+  }
+})();
+
+/* triangle (model space) */
+var MODEL = [
+  new THREE.Vector3(-1.05, -0.72, 0),
+  new THREE.Vector3( 1.15, -0.46, 0),
+  new THREE.Vector3( 0.02,  1.18, 0)
+];
+var triGeo = new THREE.BufferGeometry();
+triGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(9), 3));
+triGeo.setIndex([0,1,2]);
+var triMesh = new THREE.Mesh(triGeo, new THREE.MeshStandardMaterial({
+  color:0xb388ff, transparent:true, opacity:0.34, side:THREE.DoubleSide,
+  roughness:0.6, emissive:0x1e1436}));
+scene.add(triMesh);
+var triEdge = new THREE.LineLoop(
+  new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(9), 3)),
+  new THREE.LineBasicMaterial({color:COL.violetSoft}));
+scene.add(triEdge);
+
+var vDots = [], vLabels = ["A","B","C"], vLabelSprites = [];
+for (var i=0;i<3;i++){
+  var d = new THREE.Mesh(new THREE.SphereGeometry(0.07,14,14),
+    new THREE.MeshStandardMaterial({color:0xd3bcff, emissive:0x2a1f4a}));
+  scene.add(d); vDots.push(d);
+  var s = makeLabel(vLabels[i], "#d3bcff", 0.85); scene.add(s); vLabelSprites.push(s);
+}
+
+/* projection rays and the projected triangle on the near plane */
+var rays = [], projDots = [];
+for (var i2=0;i2<3;i2++){
+  var r = dynLine(COL.amber, 0.5, true); scene.add(r); rays.push(r);
+  var pd = new THREE.Mesh(new THREE.SphereGeometry(0.045,12,12),
+    new THREE.MeshBasicMaterial({color:COL.amberSoft}));
+  scene.add(pd); projDots.push(pd);
+}
+var projEdge = new THREE.LineLoop(
+  new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(9), 3)),
+  new THREE.LineBasicMaterial({color:COL.amber, transparent:true, opacity:0.9}));
+scene.add(projEdge);
+
+var nArrow = makeArrow(COL.violet, 0.028, 0.22, 0.082); scene.add(nArrow);
+var lArrow = makeArrow(COL.amber, 0.026, 0.20, 0.075); scene.add(lArrow);
+var lblN = makeLabel("n", "#d3bcff"); scene.add(lblN);
+var lblL = makeLabel("L", "#f7c579"); scene.add(lblL);
+var arcNL = new THREE.Line(new THREE.BufferGeometry(),
+  new THREE.LineBasicMaterial({color:0xcfd9e8, transparent:true, opacity:0.75}));
+scene.add(arcNL);
+function arcPts(a, b, radius, n, origin) {
+  var u = a.clone().normalize(), v = b.clone().normalize();
+  var ang = Math.acos(Math.max(-1, Math.min(1, u.dot(v))));
+  var perp = v.clone().sub(u.clone().multiplyScalar(u.dot(v)));
+  if (perp.lengthSq() < 1e-9) return null;
+  perp.normalize();
+  var out = [];
+  for (var i=0;i<=n;i++){
+    var t = ang*i/n;
+    out.push(origin.clone()
+      .add(u.clone().multiplyScalar(Math.cos(t)*radius))
+      .add(perp.clone().multiplyScalar(Math.sin(t)*radius)));
+  }
+  return out;
+}
+
+/* ---------------- state ---------------- */
+var S = {
+  yaw:26, pitch:14, res:20, lAz:-35, lEl:34,
+  mode:"lambert", rays:true, cull:true
+};
+var world = [null,null,null], screenPt = [null,null,null];
+var N = new THREE.Vector3(), Ldir = new THREE.Vector3(), signedArea = 0, ndl = 0;
+var hover = null;
+
+function project(P) {
+  var dz = EYE.z - P.z;
+  if (dz <= 0.05) return null;                    /* behind the camera or too close */
+  var t = NEAR / dz;
+  return {x:(P.x - EYE.x)*t, y:(P.y - EYE.y)*t};
+}
+function edge(a, b, px, py) {         /* z-component of the cross product */
+  return (b.x-a.x)*(py-a.y) - (b.y-a.y)*(px-a.x);
+}
+
+function recompute() {
+  var yaw = S.yaw*Math.PI/180, pitch = S.pitch*Math.PI/180;
+  var q = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, "YXZ"));
+  for (var i=0;i<3;i++) world[i] = MODEL[i].clone().applyQuaternion(q);
+
+  var e1 = world[1].clone().sub(world[0]);
+  var e2 = world[2].clone().sub(world[0]);
+  var n = new THREE.Vector3().crossVectors(e1, e2);
+  var area3 = n.length()/2;
+  N.copy(n).normalize();
+
+  var az = S.lAz*Math.PI/180, el = S.lEl*Math.PI/180;
+  Ldir.set(Math.cos(el)*Math.sin(az), Math.sin(el), Math.cos(el)*Math.cos(az)).normalize();
+  ndl = N.dot(Ldir);
+
+  for (var j=0;j<3;j++) screenPt[j] = project(world[j]);
+  var ok = screenPt[0] && screenPt[1] && screenPt[2];
+  signedArea = ok
+    ? 0.5*((screenPt[1].x-screenPt[0].x)*(screenPt[2].y-screenPt[0].y)
+         - (screenPt[1].y-screenPt[0].y)*(screenPt[2].x-screenPt[0].x))
+    : 0;
+
+  $("areaVal").textContent = area3.toFixed(2);
+  $("normalExpr").textContent = "n = (" + n.x.toFixed(2) + ", " + n.y.toFixed(2) + ", " + n.z.toFixed(2) + ")";
+  $("ndlVal").textContent = ndl.toFixed(2);
+  return {n:n, e1:e1, e2:e2, ok:ok};
+}
+
+function update3D(res) {
+  var pos = triGeo.attributes.position, ep = triEdge.geometry.attributes.position;
+  for (var i=0;i<3;i++){
+    pos.setXYZ(i, world[i].x, world[i].y, world[i].z);
+    ep.setXYZ(i, world[i].x, world[i].y, world[i].z);
+    vDots[i].position.copy(world[i]);
+    vLabelSprites[i].position.copy(world[i]).multiplyScalar(1.16).add(new THREE.Vector3(0,0.16,0));
+  }
+  pos.needsUpdate = true; ep.needsUpdate = true;
+  triGeo.computeVertexNormals(); triGeo.computeBoundingSphere();
+  triEdge.geometry.computeBoundingSphere();
+
+  var centroid = world[0].clone().add(world[1]).add(world[2]).multiplyScalar(1/3);
+  nArrow.setVec(centroid, N, 1.25);
+  lblN.position.copy(centroid).add(N.clone().multiplyScalar(1.5));
+  lArrow.setVec(centroid, Ldir, 1.45);
+  lblL.position.copy(centroid).add(Ldir.clone().multiplyScalar(1.72));
+
+  var pts = arcPts(N, Ldir, 0.62, 32, centroid);
+  arcNL.geometry.dispose();
+  arcNL.geometry = new THREE.BufferGeometry().setFromPoints(
+    pts || [new THREE.Vector3(), new THREE.Vector3()]);
+
+  /* triangle colour follows N.L */
+  var lit = Math.max(0, ndl);
+  triMesh.material.opacity = 0.18 + 0.42*lit;
+  triMesh.material.emissive.setRGB(0.10+0.32*lit, 0.06+0.20*lit, 0.20+0.42*lit);
+
+  var pe = projEdge.geometry.attributes.position;
+  for (var k=0;k<3;k++){
+    var sp = screenPt[k];
+    if (sp) {
+      var wp = new THREE.Vector3(EYE.x + sp.x, EYE.y + sp.y, PLANE_Z);
+      projDots[k].position.copy(wp); projDots[k].visible = S.rays;
+      rays[k].setEnds(EYE, world[k]); rays[k].visible = S.rays;
+      pe.setXYZ(k, wp.x, wp.y, wp.z);
+    } else {
+      projDots[k].visible = false; rays[k].visible = false;
+      pe.setXYZ(k, 0, 0, PLANE_Z);
+    }
+  }
+  pe.needsUpdate = true; projEdge.geometry.computeBoundingSphere();
+  projEdge.visible = res.ok;
+}
+
+/* ---------------- right side: pixel grid ---------------- */
+var pixCanvas = $("cvPix"), pctx = pixCanvas.getContext("2d");
+var pixWrap = $("vpPix"), PW = 0;
+
+function resizePix() {
+  var w = pixWrap.clientWidth, h = pixWrap.clientHeight;
+  if (!w || !h) return;
+  var dpr = Math.min(window.devicePixelRatio, 2);
+  pixCanvas.width = w*dpr; pixCanvas.height = h*dpr;
+  pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  PW = w;
+  drawPixels();
+}
+function s2c(sx, sy) {                 /* screen coords -> canvas pixels */
+  return {x:(sx + HALF)/(2*HALF)*PW, y:(HALF - sy)/(2*HALF)*PW};
+}
+
+function drawPixels() {
+  if (!PW) return;
+  pctx.clearRect(0, 0, PW, PW);
+  var culled = S.cull && signedArea < 0;
+  $("cullMsg").className = "cull" + (culled ? " on" : "");
+
+  var n = S.res, cell = PW/n;
+  var A = screenPt[0], B = screenPt[1], C = screenPt[2];
+  var valid = A && B && C && Math.abs(signedArea) > 1e-9;
+  var lit = Math.max(0, ndl);
+  var covered = 0;
+
+  /* grid */
+  pctx.strokeStyle = "rgba(61,81,112,.30)"; pctx.lineWidth = 1;
+  for (var i=0;i<=n;i++){
+    var p = Math.round(i*cell)+0.5;
+    pctx.beginPath(); pctx.moveTo(p,0); pctx.lineTo(p,PW); pctx.stroke();
+    pctx.beginPath(); pctx.moveTo(0,p); pctx.lineTo(PW,p); pctx.stroke();
+  }
+
+  if (valid && !culled) {
+    var sgn = signedArea > 0 ? 1 : -1;
+    for (var iy=0; iy<n; iy++){
+      for (var ix=0; ix<n; ix++){
+        var sx = -HALF + (ix+0.5)/n*2*HALF;
+        var sy =  HALF - (iy+0.5)/n*2*HALF;
+        var w0 = edge(B, C, sx, sy)*sgn;
+        var w1 = edge(C, A, sx, sy)*sgn;
+        var w2 = edge(A, B, sx, sy)*sgn;
+        if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+        covered++;
+        var sum = w0+w1+w2, la = w0/sum, lb = w1/sum, lc = w2/sum;
+        var col;
+        if (S.mode === "bary") {
+          col = "rgb(" + Math.round(la*255) + "," + Math.round(lb*255) + "," + Math.round(lc*255) + ")";
+        } else if (S.mode === "flat") {
+          col = "rgba(179,136,255,.72)";
+        } else {
+          var r = Math.round(28 + lit*210), g = Math.round(20 + lit*150), b = Math.round(44 + lit*70);
+          col = "rgb(" + r + "," + g + "," + b + ")";
+        }
+        pctx.fillStyle = col;
+        pctx.fillRect(ix*cell, iy*cell, cell+0.5, cell+0.5);
+      }
+    }
+  }
+
+  /* actual triangle outline */
+  if (valid) {
+    var a = s2c(A.x, A.y), b = s2c(B.x, B.y), c = s2c(C.x, C.y);
+    pctx.strokeStyle = culled ? "rgba(239,106,94,.9)" : "rgba(211,188,255,.95)";
+    pctx.lineWidth = 1.6;
+    pctx.beginPath(); pctx.moveTo(a.x,a.y); pctx.lineTo(b.x,b.y); pctx.lineTo(c.x,c.y);
+    pctx.closePath(); pctx.stroke();
+    var names = ["A","B","C"], ps = [a,b,c];
+    pctx.font = "bold 13px ui-monospace, Menlo, monospace";
+    pctx.fillStyle = "rgba(211,188,255,.95)";
+    for (var t=0;t<3;t++){
+      pctx.beginPath(); pctx.arc(ps[t].x, ps[t].y, 3.2, 0, Math.PI*2); pctx.fill();
+      pctx.fillText(names[t], ps[t].x+7, ps[t].y-6);
+    }
+  }
+
+  /* hover highlight */
+  if (hover) {
+    pctx.strokeStyle = "rgba(240,166,60,.95)"; pctx.lineWidth = 2;
+    pctx.strokeRect(hover.ix*cell, hover.iy*cell, cell, cell);
+  }
+
+  $("pixExpr").textContent = culled
+    ? "Backface culled: 0 pixels"
+    : covered + " pixels covered &middot; resolution " + n + "×" + n;
+}
+
+/* hover probe */
+pixWrap.addEventListener("pointermove", function (e) {
+  var r = pixWrap.getBoundingClientRect();
+  var px = e.clientX - r.left, py = e.clientY - r.top;
+  if (px < 0 || py < 0 || px > r.width || py > r.height) { hover = null; drawPixels(); return; }
+  var n = S.res, cell = r.width/n;
+  hover = {ix:Math.floor(px/cell), iy:Math.floor(py/cell)};
+  hover.ix = Math.max(0, Math.min(n-1, hover.ix));
+  hover.iy = Math.max(0, Math.min(n-1, hover.iy));
+  showProbe(); drawPixels();
+});
+pixWrap.addEventListener("pointerleave", function () { hover = null; showProbe(); drawPixels(); });
+
+function fmt(v){ var s = v.toFixed(3); return (v>=0?"+":"") + s; }
+function showProbe() {
+  var box = $("probe");
+  if (!hover) {
+    box.innerHTML = '<div class="row"><span>Hover over the pixel grid above</span></div>'
+                  + '<div class="row"><span>The three edge-function values for that pixel will show here</span></div>';
+    return;
+  }
+  var A = screenPt[0], B = screenPt[1], C = screenPt[2];
+  if (!A || !B || !C) { box.textContent = "A vertex is not in front of the camera"; return; }
+  var n = S.res;
+  var sx = -HALF + (hover.ix+0.5)/n*2*HALF;
+  var sy =  HALF - (hover.iy+0.5)/n*2*HALF;
+  var sgn = signedArea > 0 ? 1 : -1;
+  var w0 = edge(B, C, sx, sy)*sgn, w1 = edge(C, A, sx, sy)*sgn, w2 = edge(A, B, sx, sy)*sgn;
+  var inside = w0>=0 && w1>=0 && w2>=0;
+  var sum = w0+w1+w2;
+  function cls(v){ return v>=0 ? "pos" : "neg"; }
+  var html = '<div class="row"><span>pixel (' + hover.ix + ', ' + hover.iy + ')</span>'
+           + '<span class="verdict">' + (inside ? "inside the triangle" : "outside") + '</span></div>'
+           + '<div class="row"><span>E(BC) = <b class="' + cls(w0) + '">' + fmt(w0) + '</b>'
+           + '　E(CA) = <b class="' + cls(w1) + '">' + fmt(w1) + '</b>'
+           + '　E(AB) = <b class="' + cls(w2) + '">' + fmt(w2) + '</b></span></div>';
+  if (inside && Math.abs(sum) > 1e-9) {
+    html += '<div class="row"><span>barycentric λ = ('
+         + (w0/sum).toFixed(2) + ', ' + (w1/sum).toFixed(2) + ', ' + (w2/sum).toFixed(2)
+         + ')　　brightness N&middot;L = <b class="pos">' + Math.max(0,ndl).toFixed(2) + '</b></span></div>';
+  } else {
+    html += '<div class="row"><span>The three cross products disagree in sign &rarr; this pixel isn\'t inside the triangle</span></div>';
+  }
+  box.innerHTML = html;
+}
+
+/* ---------------- controls ---------------- */
+function refresh() {
+  var res = recompute();
+  update3D(res);
+  drawPixels();
+  showProbe();
+}
+function bindRange(id, out, key, fmtFn) {
+  var el = $(id);
+  el.addEventListener("input", function () {
+    S[key] = parseFloat(el.value);
+    $(out).textContent = fmtFn(S[key]);
+    refresh();
+  });
+  $(out).textContent = fmtFn(S[key]);
+}
+var deg = function (v) { return (v < 0 ? "\u2212" + Math.abs(v) : v) + "°"; };
+bindRange("sYaw", "oYaw", "yaw", deg);
+bindRange("sPitch", "oPitch", "pitch", deg);
+bindRange("sLAz", "oLAz", "lAz", deg);
+bindRange("sLEl", "oLEl", "lEl", deg);
+bindRange("sRes", "oRes", "res", function (v) { return v + "×" + v; });
+
+$("cRays").addEventListener("change", function(){ S.rays = this.checked; refresh(); });
+$("cCull").addEventListener("change", function(){ S.cull = this.checked; refresh(); });
+Array.prototype.forEach.call(document.querySelectorAll(".seg button[data-mode]"), function (b) {
+  b.addEventListener("click", function () {
+    S.mode = b.getAttribute("data-mode");
+    Array.prototype.forEach.call(document.querySelectorAll(".seg button[data-mode]"), function (o) {
+      o.setAttribute("aria-pressed", o === b ? "true" : "false");
+    });
+    drawPixels();
+  });
+});
+
+function resize3d() {
+  var w = wrap3d.clientWidth, h = wrap3d.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  cam.aspect = w/h; cam.updateProjectionMatrix();
+}
+window.addEventListener("resize", function () { resize3d(); resizePix(); });
+
+function tick() {
+  requestAnimationFrame(tick);
+  renderer.render(scene, cam);
+}
+setTimeout(function () { resize3d(); resizePix(); refresh(); }, 0);
+resize3d(); resizePix(); refresh(); tick();
+
+})();
+</script>
+</body>
+</html>

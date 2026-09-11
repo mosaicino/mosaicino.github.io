@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vectors: Eleven Scenes You Can Rotate</title>
+<style>
+  :root{
+    --bg:#0F1430;
+    --stage:#080B1E;
+    --panel:#161C3C;
+    --line:#2A3364;
+    --ink:#E7EAF7;
+    --dim:#98A1C8;
+    --a:#F5B33F;      /* vector a */
+    --b:#4FD8C4;      /* vector b */
+    --r:#FF6FA8;      /* result vector */
+    --g:#8FE36B;      /* helper/difference vector */
+    --sans:"Inter","Helvetica Neue","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --math:Georgia,"Times New Roman","Songti SC","STSong",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex;flex-direction:column;min-height:100%}
+
+  header{padding:18px 22px 12px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:19px;font-weight:600;letter-spacing:.01em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:13px;line-height:1.5}
+
+  nav{display:flex;gap:8px;overflow-x:auto;padding:12px 22px;border-bottom:1px solid var(--line)}
+  nav button{
+    flex:0 0 auto;display:flex;gap:9px;align-items:baseline;
+    background:transparent;border:1px solid var(--line);color:var(--dim);
+    border-radius:3px;padding:8px 13px;font-family:inherit;font-size:13px;cursor:pointer;
+    transition:border-color .15s,color .15s,background .15s;
+  }
+  nav button .sec{font-family:var(--math);font-style:italic;font-size:15px;color:var(--dim)}
+  nav button:hover{color:var(--ink);border-color:#3C4785}
+  nav button[aria-selected="true"]{background:var(--panel);border-color:#4E5AA8;color:var(--ink)}
+  nav button[aria-selected="true"] .sec{color:var(--a)}
+  nav button:focus-visible,.ctl button:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+
+  main{display:grid;grid-template-columns:minmax(0,1fr) 340px;flex:1;min-height:520px}
+  .stage{position:relative;background:var(--stage);min-height:400px}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+  .hint{position:absolute;left:14px;bottom:12px;color:#5C6699;font-size:12px;pointer-events:none}
+
+  aside{border-left:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+  aside h2{margin:0;font-size:15px;font-weight:600}
+  .lede{margin:0;font-size:13.5px;line-height:1.65;color:#C6CCE8}
+  .formula{
+    font-family:var(--math);font-size:17px;line-height:1.9;
+    background:var(--panel);border-left:2px solid var(--a);padding:11px 14px;border-radius:0 3px 3px 0;
+  }
+  .formula em{font-style:italic}
+  .readout{font-size:13px;line-height:1.9;border-top:1px solid var(--line);padding-top:12px}
+  .readout .row{display:flex;justify-content:space-between;gap:12px}
+  .readout .k{color:var(--dim)}
+  .readout .v{font-family:var(--math);font-size:15px}
+  .step{font-size:13px;line-height:1.6;color:var(--b);min-height:2.6em}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12.5px;color:var(--dim)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:3px;border-radius:2px}
+
+  .ctl{display:flex;align-items:center;gap:12px;padding:12px 22px;border-top:1px solid var(--line)}
+  .ctl button{
+    background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    border-radius:3px;padding:7px 15px;font-family:inherit;font-size:13px;cursor:pointer;
+  }
+  .ctl button:hover{border-color:#4E5AA8}
+  .ctl input[type=range]{flex:1;accent-color:var(--a);height:22px}
+  .ctl .t{font-family:var(--math);font-size:14px;color:var(--dim);min-width:3.2em;text-align:right}
+
+  @media (max-width:880px){
+    main{grid-template-columns:1fr}
+    .stage{min-height:56vh}
+    aside{border-left:0;border-top:1px solid var(--line)}
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid var(--line,#2A3364);
+  font-size:13px;font-family:var(--sans,-apple-system,"PingFang SC",sans-serif);
+}
+.backbar a{color:var(--dim,#98A1C8);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--ink,#E7EAF7);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="vectors.html">&larr; Vectors &amp; Space</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+<div class="app">
+  <header>
+    <h1>Vectors: Eleven Scenes You Can Rotate</h1>
+    <p>Follows textbook Chapter 12: the first six cover core ideas, the seventh adds the solution-space view the textbook never spells out, two are actual exam questions (12L Q17, 12N.1 Q11), and the last two watch trails being left behind. Drag to change viewpoint, scroll to zoom, scrub the progress bar frame by frame.</p>
+  </header>
+
+  <nav id="tabs" role="tablist"></nav>
+
+  <main>
+    <div class="stage">
+      <canvas id="cv"></canvas>
+      <div class="hint">Drag to rotate &middot; scroll to zoom &middot; double-click to reset</div>
+    </div>
+    <aside>
+      <h2 id="s-title"></h2>
+      <p class="lede" id="s-lede"></p>
+      <div class="formula" id="s-formula"></div>
+      <div class="step" id="s-step"></div>
+      <div class="readout" id="s-readout"></div>
+      <div class="legend" id="s-legend"></div>
+    </aside>
+  </main>
+
+  <div class="ctl">
+    <button id="play">Pause</button>
+    <input type="range" id="scrub" min="0" max="1000" value="0">
+    <span class="t" id="tlabel">0%</span>
+    <button id="trail">Trail: on</button>
+    <button id="reset">Reset view</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- vector operations ---------- */
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const mul=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const len=a=>Math.hypot(a[0],a[1],a[2]);
+const unit=a=>{const l=len(a)||1;return mul(a,1/l);};
+const lerp3=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const clamp=(x,a,b)=>x<a?a:x>b?b:x;
+/* map t into 0..1 over an interval [s,e] */
+const seg=(t,s,e)=>clamp((t-s)/(e-s),0,1);
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+const fmt=(x,n=2)=>{const v=Math.abs(x)<1e-9?0:x;return v.toFixed(n).replace(/\.?0+$/,'')||'0';};
+const vstr=v=>`(${fmt(v[0])}, ${fmt(v[1])}, ${fmt(v[2])})`;
+
+/* ---------- canvas and camera ---------- */
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const DEF={az:42*Math.PI/180, el:24*Math.PI/180, dist:16};
+let cam={...DEF};
+let W=0,H=0;
+
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  W=r.width; H=r.height;
+  cv.width=Math.max(1,Math.round(W*dpr));
+  cv.height=Math.max(1,Math.round(H*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(resize).observe(cv.parentElement);
+
+let basis={};
+function setBasis(){
+  const d=[Math.cos(cam.el)*Math.cos(cam.az),Math.cos(cam.el)*Math.sin(cam.az),Math.sin(cam.el)];
+  const right=unit(cross([0,0,1],d));
+  const up=cross(d,right);
+  basis={d,right,up,C:mul(d,cam.dist),f:Math.min(W,H)*1.05,cx:W/2,cy:H*0.55};
+}
+function proj(p){
+  const v=sub(p,basis.C);
+  const z=-dot(v,basis.d);
+  if(z<0.15) return null;
+  return {x:basis.cx+basis.f*dot(v,basis.right)/z, y:basis.cy-basis.f*dot(v,basis.up)/z, z};
+}
+
+/* ---------- drawing primitives ---------- */
+function line3(a,b,color,width=1.5,dash=null){
+  const p=proj(a),q=proj(b); if(!p||!q) return;
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.restore();
+}
+function arrow3(a,b,color,width=2.6,head=11){
+  const p=proj(a),q=proj(b); if(!p||!q) return;
+  const dx=q.x-p.x, dy=q.y-p.y, L=Math.hypot(dx,dy);
+  if(L<1.2){return;}
+  const ux=dx/L, uy=dy/L;
+  const hl=Math.min(head,L*0.42), hw=hl*0.5;
+  const bx=q.x-ux*hl, by=q.y-uy*hl;
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.fillStyle=color; ctx.beginPath();
+  ctx.moveTo(q.x,q.y);
+  ctx.lineTo(bx-uy*hw, by+ux*hw);
+  ctx.lineTo(bx+uy*hw, by-ux*hw);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function poly3(pts,fill,stroke=null,width=1){
+  const ps=pts.map(proj); if(ps.some(p=>!p)) return;
+  ctx.save(); ctx.beginPath();
+  ctx.moveTo(ps[0].x,ps[0].y);
+  for(let i=1;i<ps.length;i++) ctx.lineTo(ps[i].x,ps[i].y);
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();}
+  ctx.restore();
+}
+function text3(p,txt,color,dx=8,dy=-8,size=13,weight=500){
+  const q=proj(p); if(!q) return;
+  ctx.save();
+  ctx.font=`${weight} ${size}px Georgia, "Songti SC", serif`;
+  ctx.fillStyle='rgba(8,11,30,.75)';
+  const w=ctx.measureText(txt).width;
+  ctx.fillRect(q.x+dx-3,q.y+dy-size+2,w+6,size+5);
+  ctx.fillStyle=color; ctx.fillText(txt,q.x+dx,q.y+dy+3);
+  ctx.restore();
+}
+function dot3(p,color,r=3.6){
+  const q=proj(p); if(!q) return;
+  ctx.save(); ctx.fillStyle=color; ctx.beginPath(); ctx.arc(q.x,q.y,r,0,7); ctx.fill(); ctx.restore();
+}
+/* right-angle marker: at point P, spanned by unit directions u, v */
+function rightAngle(P,u,v,color,s=0.5){
+  const a=add(P,mul(u,s)), b=add(P,add(mul(u,s),mul(v,s))), c=add(P,mul(v,s));
+  line3(a,b,color,1.2); line3(b,c,color,1.2);
+}
+/* 3D arc (angle marker) */
+function arc3(O,u,n,ang,radius,color,width=1.6){
+  const N=Math.max(2,Math.round(Math.abs(ang)/0.06));
+  const pts=[];
+  for(let i=0;i<=N;i++){
+    const th=ang*i/N;
+    pts.push(add(O,mul(add(mul(u,Math.cos(th)),mul(n,Math.sin(th))),radius)));
+  }
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.beginPath();
+  let started=false;
+  for(const p of pts){const q=proj(p); if(!q){started=false;continue;}
+    if(!started){ctx.moveTo(q.x,q.y);started=true;} else ctx.lineTo(q.x,q.y);}
+  ctx.stroke(); ctx.restore();
+}
+/* plane through the origin with normal n (drawn as a square panel + internal grid) */
+function planeQuad(O,n,half,fill,stroke){
+  const nn=unit(n);
+  const u=unit(cross(nn, Math.abs(nn[2])<0.92?[0,0,1]:[1,0,0]));
+  const v=unit(cross(nn,u));
+  const c=[
+    add(O,add(mul(u, half),mul(v, half))),
+    add(O,add(mul(u, half),mul(v,-half))),
+    add(O,add(mul(u,-half),mul(v,-half))),
+    add(O,add(mul(u,-half),mul(v, half)))
+  ];
+  poly3(c,fill,stroke,1.3);
+  for(let i=-2;i<=2;i++){
+    if(i===0) continue;
+    const k=half*i/2.5;
+    line3(add(O,add(mul(u,k),mul(v,-half))),add(O,add(mul(u,k),mul(v,half))),stroke,0.7);
+    line3(add(O,add(mul(v,k),mul(u,-half))),add(O,add(mul(v,k),mul(u,half))),stroke,0.7);
+  }
+  return {u,v};
+}
+function grid(n=6){
+  const c='rgba(255,255,255,.055)';
+  for(let i=-n;i<=n;i++){
+    line3([i,-n,0],[i,n,0],c,1);
+    line3([-n,i,0],[n,i,0],c,1);
+  }
+}
+function axes(n=6){
+  const c='#5A65A8';
+  arrow3([0,0,0],[n,0,0],c,1.6,9); text3([n,0,0],'X',c,6,-6,13);
+  arrow3([0,0,0],[0,n,0],c,1.6,9); text3([0,n,0],'Y',c,6,-6,13);
+  arrow3([0,0,0],[0,0,n],c,1.6,9); text3([0,0,n],'Z',c,6,-6,13);
+  dot3([0,0,0],'#8E97D6',3);
+  text3([0,0,0],'O','#8E97D6',-16,14,12);
+}
+
+/* ---------- colours ---------- */
+const CA='#F5B33F', CB='#4FD8C4', CR='#FF6FA8', CG='#8FE36B', CD='#98A1C8';
+
+/* ---------- trail rendering ---------- */
+let trailOn=true;
+const trails=new Map();
+function clearTrails(){trails.clear();}
+function recordTrails(s,t){
+  if(!trailOn||!s.trail) return;
+  for(const tr of s.trail(t)){
+    if(!trails.has(tr.key)) trails.set(tr.key,{color:tr.color,pts:[],dots:!!tr.dots});
+    const e=trails.get(tr.key);
+    e.color=tr.color;
+    e.pts.push(tr.p);
+    if(e.pts.length>3000) e.pts.shift();
+  }
+}
+function drawTrails(){
+  if(!trailOn) return;
+  for(const e of trails.values()){
+    ctx.save();
+    ctx.strokeStyle=e.color; ctx.lineWidth=e.dots?3.2:1.8; ctx.setLineDash([]);
+    ctx.beginPath(); let started=false;
+    for(const p of e.pts){
+      const q=proj(p);
+      if(!q){started=false;continue;}
+      if(!started){ctx.moveTo(q.x,q.y);started=true;} else ctx.lineTo(q.x,q.y);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+/* ---------- scenes ---------- */
+const scenes=[];
+
+/* 1. A point in space, coordinates, and length */
+(function(){
+  const P=[3,4,3], A=[3,0,0], B=[3,4,0];
+  scenes.push({
+    sec:'F', tab:'Coordinates & Length', dur:14,
+    title:'A point in space; length comes from two applications of Pythagoras',
+    lede:'Walk 3 along X, then 4 along Y, then rise 3 along Z. The ground triangle OAB gives OB, and the vertical triangle OBP adds the height on top.',
+    formula:'<em>OP</em> = <em>a</em><strong>i</strong> + <em>b</em><strong>j</strong> + <em>c</em><strong>k</strong><br>|<em>OP</em>| = √(<em>a</em>² + <em>b</em>² + <em>c</em>²)',
+    legend:[[CA,'x, y components'],[CB,'z component'],[CR,'position vector OP']],
+    draw(t){
+      grid(); axes();
+      const s1=ease(seg(t,.05,.28)), s2=ease(seg(t,.28,.48)), s3=ease(seg(t,.55,.75)), s4=seg(t,.78,1);
+      // x component
+      if(s1>0){ arrow3([0,0,0],lerp3([0,0,0],A,s1),CA,2.6); if(s1>.9){dot3(A,CA);text3(A,'A(3, 0, 0)',CA,8,16,12);} }
+      // y component
+      if(s2>0){ arrow3(A,lerp3(A,B,s2),CA,2.6); if(s2>.9){dot3(B,CA);text3(B,'B(3, 4, 0)',CA,8,16,12);} }
+      // ground right triangle
+      if(s2>=1){
+        poly3([[0,0,0],A,B],'rgba(245,179,63,.13)');
+        line3([0,0,0],B,CA,1.6,[5,4]);
+        rightAngle(A,[0,1,0],[-1,0,0],CA,.45);
+        text3(mul(add([0,0,0],B),.5),'OB = 5',CA,-4,-8,12);
+      }
+      // z component
+      if(s3>0){ arrow3(B,lerp3(B,P,s3),CB,2.6); }
+      if(s3>=1){
+        poly3([[0,0,0],B,P],'rgba(79,216,196,.13)');
+        rightAngle(B,[0,0,1],unit(sub([0,0,0],B)),CB,.45);
+        text3(lerp3(B,P,.5),'c = 3',CB,8,0,12);
+      }
+      // position vector
+      if(s4>0){ arrow3([0,0,0],lerp3([0,0,0],P,ease(s4)),CR,3.2,13); }
+      dot3(P, s4>0?CR:'#6E77B4',4.5);
+      text3(P,'P(3, 4, 3)', s4>0?CR:CD, 10,-10,13,600);
+    },
+    step:t=>t<.28?'Walk a = 3 along X → point A':t<.48?'Walk b = 4 along Y → point B, OB² = 3² + 4²':t<.55?'△OAB lies flat, right angle at A':t<.78?'Rise c = 3 along Z → point P, right angle at B':'OP² = OB² + c² = a² + b² + c²',
+    readout(t){
+      return [['Component form','(3, 4, 3)'],['OB','√(3²+4²) = 5'],['|OP|','√(25 + 9) = √34 ≈ 5.83']];
+    }
+  });
+})();
+
+/* 2. The vector between two points, b - a */
+(function(){
+  const A=[3,1,1], B=[-1,4,3];
+  const AB=sub(B,A);
+  scenes.push({
+    sec:'I', tab:'Vector Between Points', dur:12,
+    title:'AB = b − a: retreat to the origin, then walk back out',
+    lede:'The displacement from A to B equals "first go back to O along −a, then out to B along b." So shift AB to the origin, and its tip lands exactly on b − a.',
+    formula:'<em>AB</em> = <em>AO</em> + <em>OB</em> = −<strong>a</strong> + <strong>b</strong> = <strong>b</strong> − <strong>a</strong>',
+    legend:[[CA,'a = OA'],[CB,'b = OB'],[CG,'AB = b − a']],
+    draw(t){
+      grid(); axes();
+      const s1=ease(seg(t,.03,.22)), s2=ease(seg(t,.18,.38)), s3=ease(seg(t,.42,.62)), s4=ease(seg(t,.7,.95));
+      if(s1>0){arrow3([0,0,0],lerp3([0,0,0],A,s1),CA,2.6); }
+      if(s1>=1){dot3(A,CA); text3(A,'A(3, 1, 1)',CA,8,18,12);}
+      if(s2>0){arrow3([0,0,0],lerp3([0,0,0],B,s2),CB,2.6);}
+      if(s2>=1){dot3(B,CB); text3(B,'B(−1, 4, 3)',CB,8,-8,12);}
+      if(s3>0){
+        arrow3(A,lerp3(A,B,s3),CG,3);
+        if(s3>=1) text3(lerp3(A,B,.5),'AB',CG,6,-8,13,600);
+      }
+      if(s4>0){
+        // shift AB back to the origin
+        const o=lerp3(A,[0,0,0],s4);
+        line3(A,o,'rgba(143,227,107,.35)',1,[4,4]);
+        arrow3(o,add(o,AB),CG,3);
+        if(s4>=1){ dot3(AB,CG); text3(AB,'(−4, 3, 2)',CG,8,-8,13,600); }
+      }
+    },
+    step:t=>t<.38?'Draw the two position vectors a and b':t<.66?'AB connects A to B: this is B\'s displacement relative to A':'Shift AB to the origin: the tip lands at b − a = (−4, 3, 2)',
+    readout(){
+      return [['a','(3, 1, 1)'],['b','(−1, 4, 3)'],['AB = b − a','(−4, 3, 2)'],['|AB|','√29 ≈ 5.39']];
+    }
+  });
+})();
+
+/* 3. Dot product and angle */
+(function(){
+  const a=[4,0,0], u=[1,0,0], n=unit([0,.62,1]), lb=3;
+  function bOf(th){ return mul(add(mul(u,Math.cos(th)),mul(n,Math.sin(th))),lb); }
+  scenes.push({
+    sec:'L', tab:'Dot Product & Angle', dur:16,
+    title:'a · b = |a||b|cos θ: the length of a projection, carrying a sign',
+    lede:'As b swings around a, watch its projection onto a (where the dashed line lands). Under 90° the projection points the same way as a and the dot product is positive; past 90° it flips and the dot product is negative; at exactly 90° the projection collapses to a point.',
+    formula:'cos θ = (<strong>a</strong> · <strong>b</strong>) / (|<strong>a</strong>| |<strong>b</strong>|)<br><strong>a</strong> · <strong>b</strong> = 0 ⟺ <strong>a</strong> ⊥ <strong>b</strong>',
+    legend:[[CA,'a'],[CB,'b'],[CR,'projection of b onto a']],
+    trail(t){
+      const th=t*2*Math.PI, b=bOf(th), c=dot(a,b)/(len(a)*len(b));
+      return [{key:'b',p:b,color:'rgba(79,216,196,.45)'},
+              {key:'foot',p:mul(u,len(b)*c),color:'rgba(255,111,168,.55)',dots:true}];
+    },
+    draw(t){
+      grid(); axes();
+      const th=t*2*Math.PI;
+      const b=bOf(th);
+      const c=dot(a,b)/(len(a)*len(b));
+      const projLen=len(b)*c;
+      const F=mul(u,projLen);
+      // projection segment
+      const pcol = Math.abs(c)<0.04 ? '#FFD666' : (c>0?CR:'#8B93FF');
+      line3([0,0,0],F,pcol,6);
+      line3(b,F,'rgba(255,255,255,.32)',1.3,[5,4]);
+      rightAngle(F,unit(sub(b,F)),projLen>=0?u:mul(u,-1),'rgba(255,255,255,.35)',.32);
+      // angle arc
+      const ang=Math.acos(clamp(c,-1,1));
+      arc3([0,0,0],u,n,th<=Math.PI?th:-(2*Math.PI-th),1.35,'#FFD666',1.8);
+      arrow3([0,0,0],a,CA,3);
+      arrow3([0,0,0],b,CB,3);
+      text3(a,'a',CA,8,-6,15,700);
+      text3(b,'b',CB,8,-6,15,700);
+      text3(mul(add(unit(a),unit(b)),1.5),`θ = ${(ang*180/Math.PI).toFixed(0)}°`,'#FFD666',6,0,13,600);
+      text3(mul(F,.5),`|b|cos θ = ${fmt(projLen)}`,pcol,-10,22,12);
+    },
+    step(t){
+      const th=t*2*Math.PI, b=bOf(th), c=dot(a,b)/(len(a)*len(b));
+      if(Math.abs(c)<0.05) return 'Right now a · b = 0: the two vectors are perpendicular, the projection shrinks to a point.';
+      return c>0 ? 'The angle is acute, the projection points the same way as a, a · b > 0.' : 'The angle is obtuse, the projection points opposite to a, a · b < 0.';
+    },
+    readout(t){
+      const th=t*2*Math.PI, b=bOf(th);
+      const d=dot(a,b), c=d/(len(a)*len(b));
+      return [['a','(4, 0, 0)'],['b',vstr(b)],['a · b',fmt(d,2)],['cos θ',fmt(c,3)],['θ',(Math.acos(clamp(c,-1,1))*180/Math.PI).toFixed(1)+'°']];
+    }
+  });
+})();
+
+/* 4. Cross product: direction and length */
+(function(){
+  const a=[4,0,0], u=[1,0,0], n=unit([0,.62,1]), lb=3;
+  function bOf(th){ return mul(add(mul(u,Math.cos(th)),mul(n,Math.sin(th))),lb); }
+  scenes.push({
+    sec:'N', tab:'Cross Product: Direction & Length', dur:16,
+    title:'a × b is perpendicular to both, with length |a||b| sin θ',
+    lede:'The pink vector is always perpendicular to the plane containing a and b (curl the right hand\'s fingers from a toward b, and the thumb points along it). When b rotates parallel to a, the parallelogram flattens and the cross product goes to zero; when b is perpendicular to a it\'s longest.',
+    formula:'|<strong>a</strong> × <strong>b</strong>| = |<strong>a</strong>| |<strong>b</strong>| sin θ<br><strong>a</strong> × <strong>b</strong> = <strong>0</strong> ⟺ <strong>a</strong> ∥ <strong>b</strong>',
+    legend:[[CA,'a'],[CB,'b'],[CR,'a × b'],['rgba(255,111,168,.35)','area = |a × b|']],
+    trail(t){
+      const th=t*2*Math.PI, b=bOf(th), c=cross(a,b), L=len(c);
+      const out=[{key:'b',p:b,color:'rgba(79,216,196,.45)'}];
+      if(L>0.15) out.push({key:'c',p:mul(unit(c),Math.min(5.2,L*0.42)),color:'rgba(255,111,168,.6)',dots:true});
+      return out;
+    },
+    draw(t){
+      grid(); axes();
+      const th=t*2*Math.PI;
+      const b=bOf(th);
+      const c=cross(a,b);
+      const L=len(c);
+      // parallelogram
+      poly3([[0,0,0],a,add(a,b),b],'rgba(255,111,168,.16)','rgba(255,111,168,.5)',1.2);
+      arrow3([0,0,0],a,CA,3);
+      arrow3([0,0,0],b,CB,3);
+      // cross product (scaled to fit the view)
+      const shown=mul(unit(c.every(v=>v===0)?[0,0,1]:c), Math.min(5.2, L*0.42));
+      if(L>0.15){
+        arrow3([0,0,0],shown,CR,3.2,12);
+        rightAngle([0,0,0],unit(a),unit(shown),'rgba(255,111,168,.55)',.42);
+        rightAngle([0,0,0],unit(b),unit(shown),'rgba(255,111,168,.55)',.42);
+        text3(shown,'a × b',CR,8,-6,14,700);
+      }else{
+        text3([0,0,1.2],'a × b = 0',CR,8,-6,14,700);
+      }
+      text3(a,'a',CA,8,-6,15,700);
+      text3(b,'b',CB,8,-6,15,700);
+    },
+    step(t){
+      const th=t*2*Math.PI, s=Math.abs(Math.sin(th));
+      if(s<0.06) return 'b is collinear with a: the parallelogram has no area, a × b = 0.';
+      if(s>0.985) return 'b ⊥ a: |a × b| reaches its maximum, |a||b|.';
+      return t<0.5 ? 'Curl the fingers from a toward b, and the thumb points along a × b.' : 'Once b has turned past 180°, a × b flips to the other side of the plane.';
+    },
+    readout(t){
+      const th=t*2*Math.PI, b=bOf(th), c=cross(a,b);
+      return [['b',vstr(b)],['a × b',vstr(c)],['|a × b|',fmt(len(c),2)],['sin θ',fmt(Math.abs(Math.sin(th)),3)],['a · (a × b)','0 (always perpendicular)']];
+    }
+  });
+})();
+
+/* 5. Area (textbook Example 38) */
+(function(){
+  const A=[-1,2,3], B=[2,1,4], C=[0,5,-1];
+  const AB=sub(B,A), AC=sub(C,A), N=cross(AB,AC);
+  scenes.push({
+    sec:'N', tab:'Triangle & Parallelogram Area', dur:13,
+    title:'Triangle area = ½|AB × AC|',
+    lede:'The three points from textbook Example 38. First complete the triangle into a parallelogram (area |AB × AC|); the triangle is exactly half of it. The normal vector\'s length is the parallelogram\'s area.',
+    formula:'S<sub>△</sub> = ½ |<em>AB</em> × <em>AC</em>|<br>S<sub>▱</sub> = |<em>AB</em> × <em>AC</em>|',
+    legend:[[CA,'AB'],[CB,'AC'],['rgba(143,227,107,.4)','triangle'],[CR,'direction of AB × AC']],
+    draw(t){
+      grid(); axes();
+      const s1=ease(seg(t,.03,.25)), s2=ease(seg(t,.25,.5)), s3=ease(seg(t,.55,.8)), s4=ease(seg(t,.82,1));
+      dot3(A,CD); text3(A,'A(−1, 2, 3)',CD,8,-8,12);
+      if(s1>0){arrow3(A,lerp3(A,B,s1),CA,2.8);}
+      if(s1>=1){dot3(B,CA);text3(B,'B(2, 1, 4)',CA,8,-8,12);}
+      if(s2>0){arrow3(A,lerp3(A,C,s2),CB,2.8);}
+      if(s2>=1){dot3(C,CB);text3(C,'C(0, 5, −1)',CB,8,16,12);}
+      if(s2>=1){
+        poly3([A,B,C],'rgba(143,227,107,.28)','rgba(143,227,107,.75)',1.4);
+      }
+      if(s3>0){
+        const D=add(A,add(AB,mul(AC,s3)));
+        poly3([B,D,add(A,mul(AC,s3))],'rgba(255,111,168,.16)','rgba(255,111,168,.45)',1.2);
+        if(s3>=1) text3(add(A,add(AB,AC)),'fourth vertex',CR,8,-8,12);
+      }
+      if(s4>0){
+        const nshow=add(A,mul(unit(N),4*s4));
+        arrow3(A,nshow,CR,3,12);
+        if(s4>=1){
+          rightAngle(A,unit(AB),unit(N),'rgba(255,111,168,.6)',.5);
+          rightAngle(A,unit(AC),unit(N),'rgba(255,111,168,.6)',.5);
+          text3(nshow,'AB × AC',CR,8,-6,13,700);
+        }
+      }
+    },
+    step:t=>t<.25?'AB = (3, −1, 1)':t<.55?'AC = (1, 3, −4), the triangle takes shape':t<.82?'Complete the parallelogram: its area is exactly twice the triangle\'s':'Normal vector AB × AC = (1, 13, 10); its length √270 is the parallelogram\'s area',
+    readout(){
+      return [['AB','(3, −1, 1)'],['AC','(1, 3, −4)'],['AB × AC','(1, 13, 10)'],['|AB × AC|','√270 ≈ 16.43'],['Triangle area','½√270 ≈ 8.22']];
+    }
+  });
+})();
+
+/* 6. Volume: parallelepiped and tetrahedron */
+(function(){
+  const b=[4,0,0], c=[1,3,0], a=[1,1,3];
+  const N=cross(b,c);            // (0,0,12)
+  const V=Math.abs(dot(a,N));    // 36
+  scenes.push({
+    sec:'N', tab:'Parallelepiped & Tetrahedron Volume', dur:16,
+    title:'Volume = base area × height = |a · (b × c)|',
+    lede:'b × c gives both the base parallelogram\'s area and the base\'s normal direction. Projecting a onto that normal gives the height, and multiplying the two gives the scalar triple product. A tetrahedron is only a sixth of it.',
+    formula:'V<sub>parallelepiped</sub> = |<strong>a</strong> · (<strong>b</strong> × <strong>c</strong>)|<br>V<sub>tetrahedron</sub> = ⅙ |<strong>a</strong> · (<strong>b</strong> × <strong>c</strong>)|',
+    legend:[[CB,'b, c (base)'],[CR,'b × c'],[CA,'a'],['rgba(245,179,63,.3)','height = projection of a onto the normal']],
+    draw(t){
+      grid(); axes();
+      const s1=ease(seg(t,.03,.22)), s2=ease(seg(t,.24,.42)), s3=ease(seg(t,.44,.62)), s4=ease(seg(t,.66,.92));
+      // base
+      if(s1>0){
+        arrow3([0,0,0],mul(b,s1),CB,2.8);
+        arrow3([0,0,0],mul(c,s1),CB,2.8);
+      }
+      if(s1>=1){
+        poly3([[0,0,0],b,add(b,c),c],'rgba(79,216,196,.18)','rgba(79,216,196,.6)',1.4);
+        text3(b,'b',CB,8,14,15,700); text3(c,'c',CB,-4,18,15,700);
+        text3(mul(add(b,c),.5),'base area = |b × c| = 12',CB,-30,26,12);
+      }
+      // normal vector
+      if(s2>0){
+        arrow3([0,0,0],mul(unit(N),4.2*s2),CR,3,12);
+        if(s2>=1) text3(mul(unit(N),4.2),'b × c = (0, 0, 12)',CR,10,-6,13,700);
+      }
+      // a and the height
+      if(s3>0){
+        arrow3([0,0,0],mul(a,s3),CA,3);
+        if(s3>=1){
+          const foot=[a[0],a[1],0];
+          line3(a,foot,'rgba(245,179,63,.6)',1.4,[5,4]);
+          line3([0,0,0],mul(unit(N),a[2]),'rgba(245,179,63,.9)',5);
+          rightAngle(foot,[0,0,1],unit(sub([0,0,0],foot)),'rgba(245,179,63,.5)',.35);
+          text3(a,'a',CA,8,-8,15,700);
+          text3(mul(unit(N),a[2]/2),'height = 3',CA,-46,4,12);
+        }
+      }
+      // parallelepiped
+      if(s4>0){
+        const top=mul(a,s4);
+        const base=[[0,0,0],b,add(b,c),c];
+        const up=base.map(p=>add(p,top));
+        poly3(up,'rgba(255,255,255,.09)','rgba(255,255,255,.35)',1.2);
+        for(let i=0;i<4;i++){
+          line3(base[i],up[i],'rgba(255,255,255,.3)',1.2);
+        }
+        poly3([base[1],base[2],up[2],up[1]],'rgba(255,255,255,.05)');
+      }
+    },
+    step:t=>t<.24?'The base is spanned by b and c':t<.44?'b × c is perpendicular to the base; its length 12 is the base area':t<.66?'a\'s projection onto the normal direction = height = 3':'Sweep out the full parallelepiped: V = 12 × 3 = 36, the tetrahedron is 1/6 of that = 6',
+    readout(){
+      return [['b','(4, 0, 0)'],['c','(1, 3, 0)'],['a','(1, 1, 3)'],['b × c','(0, 0, 12)'],['a · (b × c)','36'],['Tetrahedron volume','36 ÷ 6 = 6']];
+    }
+  });
+})();
+
+/* 7. Two planes intersecting: solution space and rank collapse */
+(function(){
+  const a=[4,0,0], u=[1,0,0], n=unit([0,.62,1]), lb=3, TH0=105*Math.PI/180;
+  const thOf=t=>TH0*(1+Math.cos(2*Math.PI*t))/2;
+  const bOf=th=>mul(add(mul(u,Math.cos(th)),mul(n,Math.sin(th))),lb);
+  scenes.push({
+    sec:'N', tab:'Two Planes Intersecting: Solution Space', dur:15,
+    title:'The step the textbook never spells out: a × b is the solution of Ax = 0',
+    lede:'"Perpendicular to both a and b" written out is two equations, a·x = 0 and b·x = 0, each a plane through the origin. The two planes meet along a line, and that line is exactly the direction of a × b -- the parameter t that textbook p.310 eliminates down to is the parameter along this line. When b rotates parallel to a, the two planes coincide, the line of intersection swells into the whole plane, and the cross product goes to zero too.',
+    formula:'<em>a</em>₁<em>x</em> + <em>a</em>₂<em>y</em> + <em>a</em>₃<em>z</em> = 0<br><em>b</em>₁<em>x</em> + <em>b</em>₂<em>y</em> + <em>b</em>₃<em>z</em> = 0<br>solution = <em>k</em>(<strong>a</strong> × <strong>b</strong>)',
+    legend:[[CA,'a and its perpendicular plane'],[CB,'b and its perpendicular plane'],[CR,'line of intersection = solution space']],
+    draw(t){
+      grid(); axes();
+      const th=thOf(t), b=bOf(th), c=cross(a,b), L=len(c);
+      const collapsed=L<0.9;
+      if(collapsed){
+        planeQuad([0,0,0],a,4.6,'rgba(255,111,168,.20)','rgba(255,111,168,.5)');
+      }else{
+        planeQuad([0,0,0],a,4.6,'rgba(245,179,63,.09)','rgba(245,179,63,.38)');
+        planeQuad([0,0,0],b,4.6,'rgba(79,216,196,.09)','rgba(79,216,196,.38)');
+        const d=unit(c);
+        line3(mul(d,-4.6),mul(d,4.6),CR,3.4);
+        const shown=mul(d,Math.min(4.4,L*0.4));
+        arrow3([0,0,0],shown,CR,3,12);
+        text3(shown,'a × b',CR,8,-6,14,700);
+      }
+      arrow3([0,0,0],a,CA,3); text3(a,'a',CA,8,-8,15,700);
+      arrow3([0,0,0],b,CB,3); text3(b,'b',CB,8,-8,15,700);
+      if(collapsed) text3([0,0,3.4],'the two equations coincide → the solution is the whole plane',CR,-70,0,13,700);
+    },
+    step(t){
+      const th=thOf(t), L=len(cross(a,bOf(th)));
+      if(L<0.9) return 'rank A drops to 1: the two equations are really the same one, the solution space grows from 1D to 2D, a × b = 0.';
+      return t<0.5 ? 'The two planes meet along a line: the solution space is 1D, and taking t = 1 gives the textbook\'s components.'
+                   : 'As b rotates back, the two planes separate again and the line of intersection returns.';
+    },
+    readout(t){
+      const th=thOf(t), b=bOf(th), c=cross(a,b), L=len(c), collapsed=L<0.9;
+      return [['b',vstr(b)],['a × b',vstr(c)],['|a × b|',fmt(L,2)],
+              ['rank A',collapsed?'1':'2'],['Solution space dimension',collapsed?'2 (whole plane)':'1 (a line)'],
+              ['θ',(th*180/Math.PI).toFixed(1)+'°']];
+    }
+  });
+})();
+
+/* 8. Exercise 12L Q17 (p.305): one equation -> solution space is a plane */
+(function(){
+  const N=[1,2,-1];
+  const e1=unit(cross(N,[0,0,1])), e2=unit(cross(N,e1));
+  const P=[2,-1,0], Q=[1,0,1];
+  scenes.push({
+    sec:'Q17', tab:'Exercise 12L Q17', dur:14,
+    title:'12L Q17: find two non-parallel vectors, both perpendicular to (1, 2, −1)',
+    lede:'The question asks for "any two," because there are infinitely many correct answers to begin with. There\'s only one equation, x + 2y − z = 0, so the solution space is an entire plane through the origin; any two non-collinear vectors in that plane work. The textbook\'s (2, −1, 0) and (1, 0, 1) are just two of them.',
+    formula:'<strong>n</strong> · <strong>x</strong> = 0 ⟹ <em>x</em> + 2<em>y</em> − <em>z</em> = 0<br>one equation, three unknowns → 2D solution space',
+    legend:[[CA,'n = (1, 2, −1)'],['rgba(255,111,168,.35)','solution space: the whole plane'],[CB,'sweeping solution'],[CG,'the textbook\'s two answers']],
+    draw(t){
+      grid(); axes();
+      planeQuad([0,0,0],N,4.4,'rgba(255,111,168,.16)','rgba(255,111,168,.42)');
+      const ph=t*2*Math.PI;
+      const w=mul(add(mul(e1,Math.cos(ph)),mul(e2,Math.sin(ph))),3.4);
+      arrow3([0,0,0],w,CB,2.8);
+      rightAngle([0,0,0],unit(w),unit(N),'rgba(79,216,196,.6)',.45);
+      arrow3([0,0,0],mul(unit(N),3.2),CA,3);
+      text3(mul(unit(N),3.2),'n',CA,8,-8,15,700);
+      arrow3([0,0,0],P,CG,2.6); dot3(P,CG); text3(P,'(2, −1, 0)',CG,8,16,12);
+      arrow3([0,0,0],Q,CG,2.6); dot3(Q,CG); text3(Q,'(1, 0, 1)',CG,8,-8,12);
+    },
+    step:t=>'The blue vector sweeps a full turn around the plane, and every position satisfies n · x = 0 -- this is what "infinitely many answers" looks like.',
+    readout(t){
+      const ph=t*2*Math.PI;
+      const w=mul(add(mul(e1,Math.cos(ph)),mul(e2,Math.sin(ph))),3.4);
+      return [['n','(1, 2, −1)'],['sweeping solution x',vstr(w)],['n · x',fmt(dot(N,w),3)],
+              ['rank A','1'],['Solution space dimension','2'],['Textbook answer','(2, −1, 0), (1, 0, 1)']];
+    }
+  });
+})();
+
+/* 9. Exercise 12N.1 Q11 (p.313): solution space is a line, then fix a length */
+(function(){
+  const a=[2,3,-1], b=[1,-2,2];
+  const c=cross(a,b);            // (4, -5, -7)
+  const L=len(c);                // √90
+  const k=5/L;
+  scenes.push({
+    sec:'Q11', tab:'Exercise 12N.1 Q11', dur:15,
+    title:'12N.1 Q11: find all perpendicular vectors, then pick the two with length 5',
+    lede:'Two equations → the solution space is a line, and every answer is written k(4, −5, −7). Add the condition "length = 5" and it fixes two points on that line: one in each direction. This is the same trick textbook Examples 26 and 30 keep using -- fix the direction first, then fix the length.',
+    formula:'<strong>a</strong> × <strong>b</strong> = (4, −5, −7),&nbsp; |<strong>a</strong> × <strong>b</strong>| = √90<br><strong>v</strong> = ± (5/√90)(4, −5, −7)',
+    legend:[[CA,'a = (2, 3, −1)'],[CB,'b = (1, −2, 2)'],[CR,'a × b'],[CG,'the two answers of length 5']],
+    draw(t){
+      grid(); axes();
+      const s1=ease(seg(t,.03,.22)), s2=ease(seg(t,.24,.46)), s3=ease(seg(t,.5,.74)), s4=ease(seg(t,.78,1));
+      if(s1>0){ arrow3([0,0,0],mul(a,s1),CA,3); arrow3([0,0,0],mul(b,s1),CB,3); }
+      if(s1>=1){ text3(a,'a',CA,8,-8,15,700); text3(b,'b',CB,8,14,15,700); }
+      if(s1>=1) poly3([[0,0,0],a,add(a,b),b],'rgba(255,111,168,.12)','rgba(255,111,168,.4)',1.1);
+      if(s2>0){
+        arrow3([0,0,0],mul(c,s2),CR,3,12);
+        if(s2>=1) text3(c,'a × b = (4, −5, −7)',CR,8,14,13,700);
+      }
+      if(s3>0){
+        const f=1+(k-1)*s3;
+        line3([0,0,0],mul(unit(c),-5.4),'rgba(255,111,168,.35)',1.2,[5,4]);
+        arrow3([0,0,0],mul(c,f),CG,3.4,12);
+        if(s3>=1) text3(mul(c,k),'length 5',CG,10,-8,13,700);
+      }
+      if(s4>0){
+        arrow3([0,0,0],mul(c,-k*s4),CG,3.4,12);
+        if(s4>=1) text3(mul(c,-k),'the other direction',CG,-70,14,12);
+      }
+    },
+    step:t=>t<.24?'First draw a and b':t<.5?'a × b = (4, −5, −7): every perpendicular vector is a multiple k(4, −5, −7) of it':t<.78?'Divide by √90 for a unit vector, then multiply by 5 -- the length is fixed':'The opposite direction satisfies the condition too, so there are two answers',
+    readout(){
+      return [['a × b','(4, −5, −7)'],['|a × b|','√90 = 3√10 ≈ 9.49'],['All perpendicular vectors','k(4, −5, −7), k ≠ 0'],
+              ['Scale factor','5/√90 = √10/6 ≈ 0.527'],['Answer','±(2.11, −2.64, −3.69)']];
+    }
+  });
+})();
+
+/* 10. b rotates around a in a cone: the tip of a x b traces a circle */
+(function(){
+  const a=[4,0,0], ah=[1,0,0], e1=[0,1,0], e2=[0,0,1], lb=3, TH=55*Math.PI/180;
+  const bOf=ph=>mul(add(mul(ah,Math.cos(TH)),mul(add(mul(e1,Math.cos(ph)),mul(e2,Math.sin(ph))),Math.sin(TH))),lb);
+  const R=len(a)*lb*Math.sin(TH);
+  const SC=4.6/R;
+  scenes.push({
+    sec:'N', tab:'Cone Sweep: The Cross Product Traces a Circle', dur:14,
+    title:'θ fixed, b rotates around a: a × b\'s length is locked, its direction sweeps a full turn',
+    lede:'b holds a 55° angle to a while rotating around it, its tip tracing the base circle of a cone. Since |a × b| = |a||b| sin θ never changes, the cross product\'s tip traces a circle too -- its radius is that parallelogram\'s area, and the circle\'s plane is perpendicular to a. This is exactly the picture behind torque and angular momentum.',
+    formula:'|<strong>a</strong> × <strong>b</strong>| = |<strong>a</strong>| |<strong>b</strong>| sin θ = constant<br>direction sweeps a full turn around <strong>a</strong>',
+    legend:[[CA,'a (axis of rotation)'],[CB,'b\'s conical path'],[CR,'a × b: a circle perpendicular to a']],
+    trail(t){
+      const ph=t*2*Math.PI, b=bOf(ph), c=cross(a,b);
+      return [{key:'b',p:b,color:'rgba(79,216,196,.5)'},
+              {key:'c',p:mul(c,SC),color:'rgba(255,111,168,.6)',dots:true}];
+    },
+    draw(t){
+      grid(); axes();
+      const ph=t*2*Math.PI, b=bOf(ph), c=cross(a,b);
+      poly3([[0,0,0],a,add(a,b),b],'rgba(255,111,168,.13)','rgba(255,111,168,.4)',1.1);
+      line3([0,0,0],mul(ah,lb*Math.cos(TH)),'rgba(245,179,63,.5)',1.2,[4,4]);
+      arrow3([0,0,0],a,CA,3); text3(a,'a',CA,8,-8,15,700);
+      arrow3([0,0,0],b,CB,3); text3(b,'b',CB,8,-8,15,700);
+      const shown=mul(c,SC);
+      arrow3([0,0,0],shown,CR,3.2,12);
+      rightAngle([0,0,0],ah,unit(shown),'rgba(255,111,168,.5)',.45);
+      text3(shown,'a × b',CR,8,-6,14,700);
+    },
+    step:t=>'Watch the pink tip trace a perfect circle: its length stays |a||b|sin 55° ≈ 9.83 the whole time -- only the direction rotates.',
+    readout(t){
+      const ph=t*2*Math.PI, b=bOf(ph), c=cross(a,b);
+      return [['θ','55° (fixed)'],['b',vstr(b)],['a × b',vstr(c)],
+              ['|a × b|',fmt(len(c),2)+' (constant)'],['φ (angle around a)',(ph*180/Math.PI).toFixed(0)+'°']];
+    }
+  });
+})();
+
+/* 11. b slides along a's direction: a x b doesn't move at all */
+(function(){
+  const a=[4,0,0], b0=[0,2.6,1.6];
+  const C=cross(a,b0);
+  const SC=4.6/len(C);
+  const kOf=t=>1.25*Math.sin(2*Math.PI*t);
+  scenes.push({
+    sec:'N', tab:'Shear Invariance: a × b Stays Put', dur:14,
+    title:'b slides along a\'s direction; the cross product doesn\'t change at all',
+    lede:'Replace b with b + k a, and the parallelogram gets sheared more and more, but its base and height never change, so its area doesn\'t change; the cross product\'s direction doesn\'t change either, so the pink vector sits completely still through the whole animation. This is a × (b + k a) = a × b -- the cross product is entirely immune to the "along-a" slice of b, and only cares about the perpendicular component. The dot product in scene 3 is the exact opposite: it only cares about the parallel component.',
+    formula:'<strong>a</strong> × (<strong>b</strong> + <em>k</em><strong>a</strong>) = <strong>a</strong> × <strong>b</strong> + <em>k</em>(<strong>a</strong> × <strong>a</strong>) = <strong>a</strong> × <strong>b</strong>',
+    legend:[[CA,'a'],[CB,'b + k a (tip moves along a line)'],[CR,'a × b: fixed'],[CG,'height: always equal']],
+    trail(t){
+      const b=add(b0,mul(a,kOf(t)));
+      return [{key:'b',p:b,color:'rgba(79,216,196,.5)'}];
+    },
+    draw(t){
+      grid(); axes();
+      const k=kOf(t), b=add(b0,mul(a,k));
+      poly3([[0,0,0],a,add(a,b),b],'rgba(255,111,168,.14)','rgba(255,111,168,.45)',1.2);
+      const foot=[b[0],0,0];
+      line3(b,foot,CG,2,[5,4]);
+      rightAngle(foot,[0,0,1],[-1,0,0],'rgba(143,227,107,.6)',.35);
+      text3(lerp3(b,foot,.5),'height ≈ 3.05',CG,10,0,12);
+      arrow3([0,0,0],a,CA,3); text3(a,'a',CA,8,16,15,700);
+      arrow3([0,0,0],b,CB,3); text3(b,'b + k a',CB,8,-8,14,700);
+      const shown=mul(C,SC);
+      arrow3([0,0,0],shown,CR,3.2,12);
+      text3(shown,'a × b (fixed)',CR,8,-6,14,700);
+    },
+    step:t=>'Watch the pink vector: the parallelogram keeps shearing, but its length and direction never change at all.',
+    readout(t){
+      const k=kOf(t), b=add(b0,mul(a,k));
+      return [['k',fmt(k,2)],['b + k a',vstr(b)],['a × b','(0, −6.4, 10.4) (constant)'],
+              ['|a × b|',fmt(len(C),2)+' (constant)'],['height = |a × b| / |a|',fmt(len(C)/len(a),2)]];
+    }
+  });
+})();
+
+/* ---------- UI ---------- */
+const tabsEl=document.getElementById('tabs');
+const elTitle=document.getElementById('s-title');
+const elLede=document.getElementById('s-lede');
+const elFormula=document.getElementById('s-formula');
+const elStep=document.getElementById('s-step');
+const elRead=document.getElementById('s-readout');
+const elLegend=document.getElementById('s-legend');
+const scrub=document.getElementById('scrub');
+const tlabel=document.getElementById('tlabel');
+const playBtn=document.getElementById('play');
+
+let cur=0, t=0, playing=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!playing) playBtn.textContent='Play';
+
+scenes.forEach((s,i)=>{
+  const btn=document.createElement('button');
+  btn.setAttribute('role','tab');
+  btn.innerHTML=`<span class="sec">${s.sec}</span><span>${s.tab}</span>`;
+  btn.addEventListener('click',()=>select(i));
+  tabsEl.appendChild(btn);
+});
+
+function select(i){
+  cur=i; t=0; clearTrails();
+  const s=scenes[i];
+  [...tabsEl.children].forEach((b,k)=>b.setAttribute('aria-selected',k===i?'true':'false'));
+  elTitle.textContent=s.title;
+  elLede.textContent=s.lede;
+  elFormula.innerHTML=s.formula;
+  elLegend.innerHTML=s.legend.map(([c,txt])=>
+    `<span><i class="swatch" style="background:${c}"></i>${txt}</span>`).join('');
+}
+
+function syncPanel(){
+  const s=scenes[cur];
+  elStep.textContent=typeof s.step==='function'?s.step(t):s.step;
+  elRead.innerHTML=s.readout(t).map(([k,v])=>
+    `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  scrub.value=Math.round(t*1000);
+  tlabel.textContent=Math.round(t*100)+'%';
+}
+
+playBtn.addEventListener('click',()=>{
+  playing=!playing;
+  playBtn.textContent=playing?'Pause':'Play';
+});
+scrub.addEventListener('input',()=>{
+  playing=false; playBtn.textContent='Play';
+  t=scrub.value/1000; clearTrails();
+});
+document.getElementById('trail').addEventListener('click',e=>{
+  trailOn=!trailOn; clearTrails();
+  e.currentTarget.textContent='Trail: '+(trailOn?'on':'off');
+});
+document.getElementById('reset').addEventListener('click',()=>{cam={...DEF};});
+
+/* orbit controls */
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  cam.az-=(e.clientX-drag.x)*0.008;
+  cam.el=clamp(cam.el+(e.clientY-drag.y)*0.006,-1.4,1.45);
+  drag={x:e.clientX,y:e.clientY};
+});
+cv.addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('pointercancel',()=>drag=null);
+cv.addEventListener('dblclick',()=>{cam={...DEF};});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  cam.dist=clamp(cam.dist*(1+Math.sign(e.deltaY)*0.09),6,42);
+},{passive:false});
+
+/* ---------- main loop ---------- */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+  const s=scenes[cur];
+  if(playing){
+    t+=dt/s.dur;
+    if(t>=1){ t-=1; clearTrails(); }   /* completed one full sweep, clear the previous trail */
+  }
+  resizeIfNeeded();
+  setBasis();
+  ctx.clearRect(0,0,W,H);
+  recordTrails(s,t);
+  s.draw(t);
+  drawTrails();
+  syncPanel();
+  requestAnimationFrame(frame);
+}
+let lastW=0,lastH=0;
+function resizeIfNeeded(){
+  const r=cv.parentElement.getBoundingClientRect();
+  if(Math.abs(r.width-lastW)>0.5||Math.abs(r.height-lastH)>0.5){
+    lastW=r.width; lastH=r.height; resize();
+  }
+}
+resize();
+select(0);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

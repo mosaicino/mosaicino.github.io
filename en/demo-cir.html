@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Explore Channel Impulse Response</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#16223a; --line:#2a3c5e; --text:#e6ecf5;
+    --muted:#93a4c0; --gold:#f7c579; --teal:#7ee0c8; --red:#ef6a5e; --vio:#b388ff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif; }
+  header{ padding:16px 20px 8px; max-width:1100px; margin:0 auto; }
+  header h1{ margin:0; font-size:20px; }
+  header p{ margin:6px 0 0; color:var(--muted); font-size:13.5px; line-height:1.55; }
+  .grid{ max-width:1100px; margin:0 auto; padding:0 16px 24px;
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 10px 6px; }
+  .panel h3{ margin:0 4px 6px; font-size:13px; font-weight:600; }
+  .panel h3 span{ color:var(--muted); font-weight:500; }
+  canvas{ display:block; width:100%; height:180px; background:#101a2c; border-radius:4px; }
+  .wide{ grid-column:1/-1; }
+  .controls{ max-width:1100px; margin:0 auto 20px; padding:0 16px;
+    display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  .ctrl{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .ctrl input[type=range]{ width:140px; accent-color:var(--teal); }
+  .val{ color:var(--gold); min-width:36px; font-variant-numeric:tabular-nums; }
+  button{ font:inherit; font-size:13px; padding:6px 12px; border-radius:5px;
+    border:1px solid var(--line); background:#1e2e4d; color:#fff; cursor:pointer; }
+  button:hover{ border-color:var(--gold); }
+  button.primary{ border-color:var(--teal); }
+  .fn{
+    margin:8px 0 2px;
+    background:#101a2c;
+    border-left:3px solid #b388ff;
+    border-radius:3px;
+    padding:8px 10px 7px;
+    color:#c5d0e0;
+    font-size:12.5px;
+    line-height:1.55;
+  }
+  .fn .note{ color:#93a4c0; font-size:11.5px; margin-top:4px; }
+  .katex{ font-size:1.05em; color:#e6ecf5; }
+  .katex .mord, .katex .mrel, .katex .mbin{ color:#e6ecf5; }
+  #who{ max-width:1100px; margin:0 auto 28px; padding:0 20px;
+    font-size:13.5px; line-height:1.7; color:var(--text); }
+  #who b{ color:var(--gold); }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } .wide{ grid-column:auto; } }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:var(--panel,#16223a);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="calculus.html">&larr; Change &amp; Gradients</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+<header>
+  <h1>Explore Channel Impulse Response</h1>
+  <p>A sharp pulse is the probe, &delta;. The channel tears it apart, giving h(t). Any waveform in comes out convolved, x &lowast; h. Drag the taps and the dispersion and watch the spike turn into a haystack.</p>
+</header>
+
+<div class="grid">
+  <div class="panel">
+    <h3>&#9312; Transmitted probe <span>x(t) &asymp; &delta;</span></h3>
+    <canvas id="cvX" width="520" height="180"></canvas>
+    <div class="fn">\[ x[n]=\frac{1}{Z}\exp\!\left(-\frac{(n-\mu)^2}{2\sigma_x^2}\right) \]
+      <div class="note">\(Z=\sum x[n]\approx 1\). As \(\sigma_x\to 0\) this approaches \(\delta[n]\)</div></div>
+  </div>
+  <div class="panel">
+    <h3>&#9313; Channel impulse response <span>h(t)　path characteristics</span></h3>
+    <canvas id="cvH" width="520" height="180"></canvas>
+    <div class="fn">\[ h_{\mathrm{taps}}=a_0\delta[n-n_0]+a_1\delta[n-n_0-d_1]+a_2\delta[n-n_0-d_2] \]
+      <div class="note">\(h=h_{\mathrm{taps}}*g\)，\(g[n]\propto\exp(-n^2/2\sigma^2)\)</div></div>
+  </div>
+  <div class="panel">
+    <h3>&#9314; Received waveform <span>y = x &lowast; h　the haystack lives here</span></h3>
+    <canvas id="cvY" width="520" height="180"></canvas>
+    <div class="fn">\[ y[n]=\sum_k x[k]\,h[n-k] \]
+      <div class="note">Continuous: \(y(t)=\displaystyle\int x(\tau)\,h(t-\tau)\,d\tau\)</div></div>
+  </div>
+  <div class="panel">
+    <h3>&#9315; Frequency response <span>|H(f)|　the more spread out in time, the narrower in frequency</span></h3>
+    <canvas id="cvF" width="520" height="180"></canvas>
+    <div class="fn">\[ H[k]=\sum_n h[n]\,e^{-j2\pi kn/N} \]
+      <div class="note">\(|H(f)|=\left|\int h(t)\,e^{-j2\pi ft}\,dt\right|\)</div></div>
+  </div>
+  <div class="panel wide">
+    <h3>&#9316; Phasor summation <span>one phasor per path, the integral just chains them tip to tail</span></h3>
+    <canvas id="cvP" width="1040" height="220"></canvas>
+    <div class="fn">\[ H(f)\approx a_0+a_1 e^{-j2\pi f\tau_1}+a_2 e^{-j2\pi f\tau_2} \]
+      <div class="note">Continuous: \(H(f)=\int h(t)\,e^{-j2\pi ft}\,dt\). A delay \(\tau\) only rotates phase by \(2\pi f\tau\)</div></div>
+  </div>
+  <div class="panel">
+    <h3>&#9317; Restoration function <span>G(f)　the equaliser</span></h3>
+    <canvas id="cvG" width="520" height="180"></canvas>
+    <div class="fn">\[ G_{\mathrm{ZF}}=\frac{1}{H},\qquad G_{\mathrm{MMSE}}=\frac{H^{\ast}}{|H|^2+N_0} \]
+      <div class="note">Don't divide hard inside a notch, or noise gets amplified along with it</div></div>
+  </div>
+  <div class="panel">
+    <h3>&#9318; Restored result <span>x&#770; = g &lowast; y　the gold line is the original spike</span></h3>
+    <canvas id="cvR" width="520" height="180"></canvas>
+    <div class="fn">\[ \hat{X}(f)=G(f)\,Y(f) \]
+      <div class="note">In the ideal case \(g*h\approx\delta\), and the haystack slims back into a spike</div></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl">Pulse width <input id="pw" type="range" min="1" max="40" value="4"><span class="val" id="pwV">4</span></div>
+  <div class="ctrl">Main path <input id="a0" type="range" min="0" max="100" value="100"><span class="val" id="a0V">1.00</span></div>
+  <div class="ctrl">Path 2 delay<input id="d1" type="range" min="4" max="80" value="22"><span class="val" id="d1V">22</span></div>
+  <div class="ctrl">Path 2 amplitude<input id="a1" type="range" min="0" max="120" value="55"><span class="val" id="a1V">0.55</span></div>
+  <div class="ctrl">Path 3 delay<input id="d2" type="range" min="8" max="120" value="48"><span class="val" id="d2V">48</span></div>
+  <div class="ctrl">Path 3 amplitude<input id="a2" type="range" min="0" max="100" value="28"><span class="val" id="a2V">0.28</span></div>
+  <div class="ctrl">Gaussian dispersion σ<input id="sig" type="range" min="0" max="28" value="6"><span class="val" id="sigV">6</span></div>
+  <div class="ctrl">Frequency f<input id="freq" type="range" min="1" max="40" value="8"><span class="val" id="freqV">8</span></div>
+  <div class="ctrl">Noise N&#8320;<input id="n0" type="range" min="0" max="40" value="4"><span class="val" id="n0V">0.04</span></div>
+  <div class="ctrl">Equaliser
+    <select id="eqm" style="background:#1e2e4d;color:#fff;border:1px solid #2a3c5e;border-radius:4px;padding:4px 8px;">
+      <option value="mmse" selected>MMSE</option>
+      <option value="zf">ZF 1/H</option>
+      <option value="off">None</option>
+    </select>
+  </div>
+  <button class="primary" id="play">Fire pulse</button>
+  <button id="ideal">Ideal spike</button>
+  <button id="pre">Weak-then-strong</button>
+  <button id="gaus">Pure haystack</button>
+</div>
+<div id="who"></div>
+
+<script>
+const N = 256;
+const ids = ["cvX","cvH","cvY","cvF"].map(id => {
+  const c = document.getElementById(id);
+  return { c, ctx: c.getContext("2d") };
+});
+const cvP = document.getElementById("cvP"), ctxP = cvP.getContext("2d");
+const cvG = document.getElementById("cvG"), ctxG = cvG.getContext("2d");
+const cvR = document.getElementById("cvR"), ctxR = cvR.getContext("2d");
+
+function gauss(n, mu, s){
+  if (s < 0.4) return Math.abs(n-mu) < 0.5 ? 1 : 0;
+  const d = (n-mu)/s;
+  return Math.exp(-0.5*d*d);
+}
+function conv(a,b){
+  const o = new Float64Array(N);
+  for (let i=0;i<N;i++){
+    let s=0;
+    for (let k=0;k<N;k++){
+      const j=i-k;
+      if (j>=0 && j<N) s += a[k]*b[j];
+    }
+    o[i]=s;
+  }
+  return o;
+}
+function fft(reIn, imIn, inverse){
+  const n = N;
+  const bitrev = i => {
+    let r=0, k=i, b=Math.log2(n);
+    for (let j=0;j<b;j++){ r=(r<<1)|(k&1); k>>=1; }
+    return r;
+  };
+  const wr = new Float64Array(n), wi = new Float64Array(n);
+  for (let i=0;i<n;i++){
+    wr[bitrev(i)] = reIn[i] || 0;
+    wi[bitrev(i)] = (imIn && imIn[i]) || 0;
+  }
+  const sign = inverse ? 1 : -1;
+  for (let size=2; size<=n; size<<=1){
+    const half=size/2, ang=sign*2*Math.PI/size;
+    const wr0=Math.cos(ang), wi0=Math.sin(ang);
+    for (let i=0;i<n;i+=size){
+      let cr=1, ci=0;
+      for (let j=0;j<half;j++){
+        const tr=cr*wr[i+j+half]-ci*wi[i+j+half];
+        const ti=cr*wi[i+j+half]+ci*wr[i+j+half];
+        wr[i+j+half]=wr[i+j]-tr; wi[i+j+half]=wi[i+j]-ti;
+        wr[i+j]+=tr; wi[i+j]+=ti;
+        const ncr=cr*wr0-ci*wi0; ci=cr*wi0+ci*wr0; cr=ncr;
+      }
+    }
+  }
+  if (inverse) for (let i=0;i<n;i++){ wr[i]/=n; wi[i]/=n; }
+  return {re:wr, im:wi};
+}
+function fftMag(h){
+  const F = fft(h, null, false);
+  const mag = new Float64Array(N/2);
+  for (let i=0;i<N/2;i++) mag[i]=Math.hypot(F.re[i], F.im[i]);
+  return mag;
+}
+function equalize(x, h, y, p){
+  const Y = fft(y, null, false);
+  const H = fft(h, null, false);
+  const Gre = new Float64Array(N), Gim = new Float64Array(N);
+  const Gmag = new Float64Array(N/2);
+  const n0 = p.n0;
+  const mode = p.eqm;
+  for (let k=0;k<N;k++){
+    const Hr=H.re[k], Hi=H.im[k];
+    const pwr = Hr*Hr + Hi*Hi;
+    let Gr=0, Gi=0;
+    if (mode === "off"){ Gr=1; Gi=0; }
+    else if (mode === "zf"){
+      const d = pwr + 1e-6;
+      Gr = Hr/d; Gi = -Hi/d;
+    } else {
+      const d = pwr + n0;
+      Gr = Hr/d; Gi = -Hi/d;
+    }
+    Gre[k]=Gr; Gim[k]=Gi;
+    if (k<N/2) Gmag[k]=Math.hypot(Gr,Gi);
+  }
+  const Xr = new Float64Array(N), Xi = new Float64Array(N);
+  for (let k=0;k<N;k++){
+    Xr[k] = Gre[k]*Y.re[k] - Gim[k]*Y.im[k];
+    Xi[k] = Gre[k]*Y.im[k] + Gim[k]*Y.re[k];
+  }
+  const xr = fft(Xr, Xi, true);
+  return {hat: xr.re, Gmag};
+}
+
+function drawTrace(ctx, data, color, sweep, overlay){
+  const W=ctx.canvas.width, H=ctx.canvas.height;
+  ctx.fillStyle="#101a2c"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#2a3c5e"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(8,H/2); ctx.lineTo(W-8,H/2); ctx.stroke();
+  let mx=1e-9;
+  for (let i=0;i<data.length;i++) mx=Math.max(mx, Math.abs(data[i]));
+  if (overlay) for (let i=0;i<overlay.length;i++) mx=Math.max(mx, Math.abs(overlay[i]));
+  function line(arr, col, width, dash){
+    ctx.beginPath();
+    for (let i=0;i<arr.length;i++){
+      const x=12+i/(arr.length-1)*(W-24);
+      const y=H/2 - arr[i]/mx*(H*0.38);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=col; ctx.lineWidth=width;
+    ctx.setLineDash(dash||[]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const last = sweep==null ? data.length : Math.max(2, Math.min(data.length, sweep|0));
+  if (overlay) line(overlay, "rgba(247,197,121,.85)", 1.6, [4,3]);
+  line(data.subarray ? data.subarray(0,last) : data, color, 2, []);
+  if (sweep!=null && sweep<data.length){
+    const x=12+sweep/(data.length-1)*(W-24);
+    ctx.strokeStyle="rgba(247,197,121,.7)";
+    ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,H-10); ctx.stroke();
+  }
+}
+
+let playing=false, sweep=N, tPlay=0;
+
+function params(){
+  return {
+    pw: +pw.value,
+    a0: +a0.value/100,
+    a1: +a1.value/100,
+    a2: +a2.value/100,
+    d1: +d1.value,
+    d2: +d2.value,
+    sig: +sig.value,
+    freq: +freq.value,
+    n0: (+n0.value)/100,
+    eqm: document.getElementById("eqm").value
+  };
+}
+function syncLabels(){
+  const p=params();
+  pwV.textContent=p.pw;
+  a0V.textContent=p.a0.toFixed(2);
+  a1V.textContent=p.a1.toFixed(2);
+  a2V.textContent=p.a2.toFixed(2);
+  d1V.textContent=p.d1;
+  d2V.textContent=p.d2;
+  sigV.textContent=p.sig;
+  freqV.textContent=p.freq;
+  n0V.textContent=p.n0.toFixed(2);
+}
+
+function build(){
+  const p=params();
+  const x=new Float64Array(N);
+  const mu=36;
+  for (let i=0;i<N;i++) x[i]=gauss(i, mu, p.pw);
+  let xs=0; for (const v of x) xs+=v; if(xs) for(let i=0;i<N;i++) x[i]/=xs;
+
+  const taps=new Float64Array(N);
+  const t0=36;
+  taps[t0]+=p.a0;
+  if (t0+p.d1<N) taps[t0+p.d1]+=p.a1;
+  if (t0+p.d2<N) taps[t0+p.d2]+=p.a2;
+
+  const g=new Float64Array(N);
+  const mid=48;
+  for (let i=0;i<N;i++) g[i]=gauss(i, mid, Math.max(p.sig, 0.35));
+  let gs=0; for (const v of g) gs+=v; if(gs) for(let i=0;i<N;i++) g[i]/=gs;
+  const h=conv(taps,g);
+
+  const y0=conv(x,h);
+  const y=new Float64Array(N);
+  // tiny deterministic wiggle so ZF vs MMSE can be seen
+  for (let i=0;i<N;i++) y[i]=y0[i] + p.n0*0.15*Math.sin(i*0.37);
+  const Hm=fftMag(h);
+  const eq=equalize(x,h,y,p);
+  return {x,h,y,Hm,p,hat:eq.hat,Gmag:eq.Gmag};
+}
+
+function drawPhasors(p){
+  const W=cvP.width, H=cvP.height;
+  ctxP.fillStyle="#101a2c"; ctxP.fillRect(0,0,W,H);
+  const cx=W*0.28, cy=H*0.52, R=Math.min(W,H)*0.28;
+  ctxP.strokeStyle="#2a3c5e";
+  ctxP.beginPath(); ctxP.arc(cx,cy,R,0,7); ctxP.stroke();
+  ctxP.beginPath(); ctxP.moveTo(cx-R-10,cy); ctxP.lineTo(cx+R+10,cy);
+  ctxP.moveTo(cx,cy-R-6); ctxP.lineTo(cx,cy+R+6); ctxP.stroke();
+  ctxP.fillStyle="#93a4c0"; ctxP.font="12px sans-serif";
+  ctxP.fillText("Re", cx+R+12, cy-6);
+  ctxP.fillText("Im", cx+8, cy-R-8);
+
+  // tap delays relative to first path (sample 36)
+  const taps = [
+    {a:p.a0, d:0, col:"#f7c579", name:"main path"},
+    {a:p.a1, d:p.d1, col:"#7ee0c8", name:"path 2"},
+    {a:p.a2, d:p.d2, col:"#ef6a5e", name:"path 3"}
+  ];
+  const f = p.freq / N; // cycles per sample
+  let x=0, y=0;
+  const chain=[[0,0]];
+  taps.forEach(tp=>{
+    const ph = -2*Math.PI*f*tp.d;
+    x += tp.a*Math.cos(ph);
+    y += tp.a*Math.sin(ph);
+    chain.push([x,y]);
+  });
+  const mag = Math.hypot(x,y) || 1;
+  const scale = R*0.85 / Math.max(1.15, mag, ...taps.map(tp=>tp.a));
+  function toS(vx,vy){ return [cx+vx*scale, cy-vy*scale]; }
+
+  let px=0, py=0;
+  taps.forEach((tp,i)=>{
+    const ph=-2*Math.PI*f*tp.d;
+    const nx=px+tp.a*Math.cos(ph), ny=py+tp.a*Math.sin(ph);
+    const a=toS(px,py), b=toS(nx,ny);
+    ctxP.strokeStyle=tp.col; ctxP.lineWidth=3;
+    ctxP.beginPath(); ctxP.moveTo(a[0],a[1]); ctxP.lineTo(b[0],b[1]); ctxP.stroke();
+    ctxP.fillStyle=tp.col;
+    ctxP.beginPath(); ctxP.arc(b[0],b[1],4,0,7); ctxP.fill();
+    px=nx; py=ny;
+  });
+  const end=toS(x,y), org=toS(0,0);
+  ctxP.strokeStyle="#b388ff"; ctxP.lineWidth=2; ctxP.setLineDash([5,4]);
+  ctxP.beginPath(); ctxP.moveTo(org[0],org[1]); ctxP.lineTo(end[0],end[1]); ctxP.stroke();
+  ctxP.setLineDash([]);
+  ctxP.fillStyle="#b388ff";
+  ctxP.beginPath(); ctxP.arc(end[0],end[1],5,0,7); ctxP.fill();
+
+  ctxP.fillStyle="#e6ecf5"; ctxP.font="13px sans-serif";
+  ctxP.textAlign="left";
+  const left=W*0.52;
+  ctxP.fillText("frequency f = "+p.freq+"  (drag the slider to spin the phasors)", left, 36);
+  ctxP.fillStyle="#f7c579"; ctxP.fillText("gold: main path  a₀ ∠ 0", left, 60);
+  ctxP.fillStyle="#7ee0c8"; ctxP.fillText("teal: path 2 a₁ ∠ −2πf τ₁", left, 80);
+  ctxP.fillStyle="#ef6a5e"; ctxP.fillText("red: path 3 a₂ ∠ −2πf τ₂", left, 100);
+  ctxP.fillStyle="#b388ff";
+  ctxP.fillText("violet: vector sum = H(f)    |H| = "+mag.toFixed(2), left, 128);
+  const align = Math.abs(Math.cos(2*Math.PI*f*p.d1))+Math.abs(Math.cos(2*Math.PI*f*p.d2));
+  ctxP.fillStyle="#93a4c0";
+  ctxP.fillText("Phases aligned → constructive, haystack tall; phases opposed → destructive, a notch (fade) appears in frequency.", left, 156);
+  ctxP.fillText("The continuous version is just the integral  H(f)=∫ h(t) e^{−j2πft} dt", left, 176);
+}
+
+function describe(p, h, hat, x){
+  const sharp = p.pw<=5;
+  const hay = p.sig>=10 && p.a1<0.15 && p.a2<0.15;
+  const pre = p.a1>p.a0 || p.a2>p.a0;
+  let s = "";
+  s += sharp
+    ? "The probe is sharp enough, so the haystack / spike train seen in ③ ≈ <b>the impulse response h(t)</b>."
+    : "The probe has already fattened up, so ③ = x ∗ h, wider than h itself — not the pure path characteristic.";
+  if (hay) s += " Dispersion is heavy and multipath is weak right now: h(t) itself is just a pile of Gaussian haystacks.";
+  if (pre) s += " The later path is stronger than the main one: weak at first, energy arrives late, close to maximum phase — dividing hard by 1/H tends to blow up.";
+  if (!hay && (p.a1>0.05||p.a2>0.05)) s += " Multipath tears one spike into several; each is then rounded off by σ.";
+  s += " <b>δ is always the probe</b>; the path characteristic is h, not δ.";
+  document.getElementById("who").innerHTML = s;
+}
+
+function render(){
+  syncLabels();
+  const {x,h,y,Hm,p,hat,Gmag}=build();
+  drawTrace(ids[0].ctx, x, "#f7c579", playing?sweep:null);
+  drawTrace(ids[1].ctx, h, "#7ee0c8", null);
+  drawTrace(ids[2].ctx, y, "#b388ff", playing?sweep:null);
+  drawTrace(ids[3].ctx, Hm, "#5dade2", null);
+  drawPhasors(p);
+  drawTrace(ctxG, Gmag, "#ef6a5e", null);
+  drawTrace(ctxR, hat, "#7ee0c8", playing?sweep:null, x);
+  describe(p,h,hat,x);
+}
+
+["pw","a0","a1","a2","d1","d2","sig","freq","n0","eqm"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", render);
+  document.getElementById(id).addEventListener("change", render);
+});
+document.getElementById("ideal").onclick=()=>{
+  pw.value=1; sig.value=1; a0.value=100; a1.value=0; a2.value=0; render();
+};
+document.getElementById("pre").onclick=()=>{
+  pw.value=3; sig.value=4; a0.value=35; a1.value=100; d1.value=18; a2.value=45; d2.value=40; render();
+};
+document.getElementById("gaus").onclick=()=>{
+  pw.value=3; sig.value=18; a0.value=100; a1.value=0; a2.value=0; render();
+};
+document.getElementById("play").onclick=()=>{
+  playing=true; sweep=20; tPlay=performance.now();
+};
+function tick(now){
+  if(playing){
+    sweep += 1.8;
+    if(sweep>=N){ playing=false; sweep=N; }
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+render();
+requestAnimationFrame(tick);
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}]});"></script>
+</body>
+</html>

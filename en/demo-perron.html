@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Perron Tree &middot; Interactive</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#16223a; --line:#2a3c5e; --text:#e6ecf5;
+    --muted:#93a4c0; --accent:#f7c579; --red:#ef6a5e; --blue:#7ee0c8;
+  }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  h1{ text-align:center; font-size:18px; font-weight:600; margin:16px 0 4px; color:#fff; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px 24px;
+    max-width:1040px; margin:0 auto; padding:0 20px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; }
+  .panel h3{ font-size:12.5px; font-weight:600; margin:2px 4px 6px; color:#fff; }
+  canvas{ display:block; width:100%; height:auto; background:#101a2c; border-radius:4px; }
+  .controls{ max-width:1040px; margin:18px auto 8px; padding:0 20px 20px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:18px; }
+  .ctrl{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); }
+  .ctrl input[type=range]{ width:200px; accent-color:var(--blue); }
+  .ctrl .val{ font-variant-numeric:tabular-nums; min-width:34px; display:inline-block; color:var(--accent); }
+  button{ font:inherit; font-size:13px; padding:7px 14px; border-radius:5px;
+    border:1px solid var(--line); background:#1e2e4d; color:#fff; cursor:pointer; }
+  button:hover{ background:#2a3d62; border-color:var(--accent); }
+  .tip{ max-width:1040px; margin:0 auto 24px; padding:0 20px; font-size:12.5px;
+    color:var(--muted); line-height:1.6; }
+  @media (max-width:720px){ .grid{ grid-template-columns:1fr; } }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:var(--panel,#16223a);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="fractals.html">&larr; Fractals &amp; Dimension</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+<h1 id="title">Perron Tree &mdash; the sum of areas never changes, the union collapses; not one direction is lost</h1>
+
+<div class="grid">
+  <div class="panel">
+    <h3 id="t1">&#9312; Original triangle sliced into 16 strips (colour = direction)</h3>
+    <canvas id="cvSrc" width="460" height="420"></canvas>
+  </div>
+  <div class="panel">
+    <h3 id="t2">&#9313; Perron Tree</h3>
+    <canvas id="cvTree" width="460" height="420"></canvas>
+  </div>
+  <div class="panel">
+    <h3 id="t3">&#9314; Subdividing further does nothing to the sum of areas &mdash; only overlap shrinks the union</h3>
+    <canvas id="cvArea" width="460" height="300"></canvas>
+  </div>
+  <div class="panel">
+    <h3 id="t4">&#9315; The direction spectrum is identical before and after shifting &mdash; nothing lost</h3>
+    <canvas id="cvDir" width="460" height="300"></canvas>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl">
+    <label>Subdivision level n</label>
+    <input type="range" id="nSlider" min="1" max="7" step="1" value="4">
+    <span class="val" id="nVal">4</span>
+  </div>
+  <div class="ctrl">
+    <label>Overlap coefficient α</label>
+    <input type="range" id="aSlider" min="0.50" max="1.00" step="0.01" value="0.62">
+    <span class="val" id="aVal">0.62</span>
+  </div>
+  <button id="bestBtn">Best α</button>
+</div>
+
+<div class="tip">
+  Tip: at α = 1.00 there's no shift, so the union = |T|; drag α smaller and watch the blue line in &#9314; drop while the red line doesn't move.
+  The union area is estimated by rasterising on a canvas (drawing every small triangle to an offscreen canvas and counting the fraction of coloured pixels),
+  more accurate at higher resolution &mdash; this uses a 480&times;480 grid &mdash; the same idea as box-counting to estimate a fractal dimension.
+</div>
+
+<script>
+const BASE_W = 1.0, APEX_H = 1.0;
+const T_AREA = BASE_W * APEX_H / 2.0;
+const N_CURVE = 6;
+const RES_MAIN = 480, RES_CURVE = 260, RES_SCAN = 200;
+
+function baseTriangles(n){
+  const m = Math.pow(2, n);
+  const apex = [BASE_W/2, APEX_H];
+  const tris = [];
+  for(let i=0;i<m;i++){
+    tris.push([[i*BASE_W/m,0],[(i+1)*BASE_W/m,0],apex]);
+  }
+  return tris;
+}
+
+function translateTri(tri, dx){
+  return tri.map(p=>[p[0]+dx, p[1]]);
+}
+
+function perronPieces(n, alpha){
+  let clusters = baseTriangles(n).map(t=>[t]);
+  let w = BASE_W / Math.pow(2,n);
+  for(let level=0; level<n; level++){
+    const t = (1.0-alpha)*w;
+    const next = [];
+    for(let i=0;i<clusters.length;i+=2){
+      const left = clusters[i].map(tri=>translateTri(tri, t));
+      const right = clusters[i+1].map(tri=>translateTri(tri, -t));
+      next.push(left.concat(right));
+    }
+    clusters = next;
+    w = 2.0*alpha*w;
+  }
+  const pieces = [];
+  for(const c of clusters) for(const tri of c) pieces.push(tri);
+  return pieces;
+}
+
+function fanEdges(n){
+  const m = Math.pow(2, n);
+  const apex = [BASE_W/2, APEX_H];
+  const angles = [];
+  for(let i=0;i<=m;i++){
+    const vx = i*BASE_W/m - apex[0];
+    const vy = 0 - apex[1];
+    let deg = Math.atan2(vy, vx) * 180/Math.PI;
+    deg = ((deg % 180) + 180) % 180;
+    angles.push(deg);
+  }
+  return angles;
+}
+
+function colorFor(i, m){
+  const t = m>1 ? i/(m-1) : 0;
+  const hue = 260 - t*260;
+  return `hsl(${hue.toFixed(0)},78%,62%)`;
+}
+
+function bboxOf(triangles){
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  for(const tri of triangles) for(const p of tri){
+    if(p[0]<minx) minx=p[0]; if(p[0]>maxx) maxx=p[0];
+    if(p[1]<miny) miny=p[1]; if(p[1]>maxy) maxy=p[1];
+  }
+  return {minx,maxx,miny,maxy};
+}
+
+function rasterUnionArea(triangles, res){
+  const {minx,maxx,miny,maxy} = bboxOf(triangles);
+  const w = Math.max(maxx-minx, 1e-6), h = Math.max(maxy-miny, 1e-6);
+  const c = document.createElement('canvas');
+  c.width = res; c.height = res;
+  const cx = c.getContext('2d');
+  cx.fillStyle = '#000';
+  for(const tri of triangles){
+    cx.beginPath();
+    tri.forEach((p,idx)=>{
+      const px = (p[0]-minx)/w*res;
+      const py = res - (p[1]-miny)/h*res;
+      if(idx===0) cx.moveTo(px,py); else cx.lineTo(px,py);
+    });
+    cx.closePath();
+    cx.fill();
+  }
+  const data = cx.getImageData(0,0,res,res).data;
+  let count=0;
+  for(let i=3;i<data.length;i+=4){ if(data[i]>0) count++; }
+  return count * (w*h) / (res*res);
+}
+
+function mapper(bounds, padFrac, canvasW, canvasH){
+  const w = Math.max(bounds.maxx-bounds.minx, 1e-6);
+  const h = Math.max(bounds.maxy-bounds.miny, 1e-6);
+  const pad = padFrac * Math.max(w,h);
+  const dataW = w + 2*pad, dataH = h + 2*pad;
+  const scale = Math.min(canvasW/dataW, canvasH/dataH);
+  const offX = (canvasW - dataW*scale)/2;
+  const offY = (canvasH - dataH*scale)/2;
+  return function(p){
+    const x = (p[0]-bounds.minx+pad)*scale + offX;
+    const y = canvasH - ((p[1]-bounds.miny+pad)*scale + offY);
+    return [x,y];
+  };
+}
+
+function drawTriPath(ctx, pts){
+  ctx.beginPath();
+  pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+  ctx.closePath();
+}
+
+const cvSrc = document.getElementById('cvSrc'), ctxSrc = cvSrc.getContext('2d');
+const cvTree = document.getElementById('cvTree'), ctxTree = cvTree.getContext('2d');
+const cvArea = document.getElementById('cvArea'), ctxArea = cvArea.getContext('2d');
+const cvDir = document.getElementById('cvDir'), ctxDir = cvDir.getContext('2d');
+
+function drawSource(n){
+  const m = Math.pow(2,n);
+  const tris = baseTriangles(n);
+  const bounds = {minx:0,maxx:1,miny:0,maxy:APEX_H};
+  const W = cvSrc.width, H = cvSrc.height;
+  const M = mapper(bounds, 0.08, W, H);
+  ctxSrc.clearRect(0,0,W,H);
+  tris.forEach((tri,i)=>{
+    const pts = tri.map(M);
+    drawTriPath(ctxSrc, pts);
+    ctxSrc.fillStyle = colorFor(i,m);
+    ctxSrc.fill();
+    ctxSrc.strokeStyle = 'rgba(11,18,32,0.7)'; ctxSrc.lineWidth = 0.6; ctxSrc.stroke();
+  });
+  ctxSrc.fillStyle = '#e6ecf5'; ctxSrc.font = '12px sans-serif'; ctxSrc.textAlign = 'center';
+  ctxSrc.fillText(`area = ${T_AREA.toFixed(4)}`, W/2, 18);
+  document.getElementById('t1').textContent = `① Original triangle sliced into ${m} strips (colour = direction)`;
+}
+
+function drawTree(n, alpha){
+  const m = Math.pow(2,n);
+  const pieces = perronPieces(n, alpha);
+  const area = rasterUnionArea(pieces, RES_MAIN);
+  const bounds = bboxOf(pieces);
+  const W = cvTree.width, H = cvTree.height;
+  const M = mapper(bounds, 0.08, W, H);
+  ctxTree.clearRect(0,0,W,H);
+  ctxTree.fillStyle = 'rgba(126,224,200,0.18)';
+  pieces.forEach(tri=>{
+    const pts = tri.map(M);
+    drawTriPath(ctxTree, pts);
+    ctxTree.fill();
+  });
+  pieces.forEach((tri,i)=>{
+    const pts = tri.map(M);
+    drawTriPath(ctxTree, pts);
+    ctxTree.strokeStyle = colorFor(i,m); ctxTree.lineWidth = 0.9; ctxTree.stroke();
+  });
+  ctxTree.fillStyle = '#93a4c0'; ctxTree.font = '11px sans-serif'; ctxTree.textAlign = 'center';
+  ctxTree.fillText('Root: overlap eats the area   Tip: thin shoots carry the direction', W/2, H-8);
+  document.getElementById('t2').textContent =
+    `② Perron Tree: union area = ${area.toFixed(4)}  (${(area/T_AREA*100).toFixed(1)}% of |T|)`;
+  return area;
+}
+
+function drawAreaCurve(n, alpha, currentArea){
+  const W = cvArea.width, H = cvArea.height;
+  const padL=44, padR=16, padT=14, padB=32;
+  ctxArea.clearRect(0,0,W,H);
+  const xs = [], ys = [];
+  for(let k=1;k<=N_CURVE;k++){
+    xs.push(k);
+    ys.push(rasterUnionArea(perronPieces(k, alpha), RES_CURVE));
+  }
+  const yMax = T_AREA*1.18;
+  const toX = x => padL + (x-1)/(N_CURVE-1)*(W-padL-padR);
+  const toY = y => H-padB - (y/yMax)*(H-padT-padB);
+
+  ctxArea.strokeStyle = '#2a3c5e'; ctxArea.lineWidth=1;
+  ctxArea.beginPath(); ctxArea.moveTo(padL,padT); ctxArea.lineTo(padL,H-padB); ctxArea.lineTo(W-padR,H-padB); ctxArea.stroke();
+
+  ctxArea.strokeStyle = '#ef6a5e'; ctxArea.lineWidth=2;
+  ctxArea.beginPath(); ctxArea.moveTo(padL, toY(T_AREA)); ctxArea.lineTo(W-padR, toY(T_AREA)); ctxArea.stroke();
+
+  ctxArea.strokeStyle = '#7ee0c8'; ctxArea.lineWidth=2;
+  ctxArea.beginPath();
+  xs.forEach((x,i)=>{ const px=toX(x), py=toY(ys[i]); if(i===0) ctxArea.moveTo(px,py); else ctxArea.lineTo(px,py); });
+  ctxArea.stroke();
+  xs.forEach((x,i)=>{
+    ctxArea.beginPath(); ctxArea.arc(toX(x), toY(ys[i]), 3.4, 0, 7);
+    ctxArea.fillStyle='#7ee0c8'; ctxArea.fill();
+  });
+  if(n<=N_CURVE){
+    ctxArea.beginPath();
+    ctxArea.arc(toX(n), toY(currentArea), 8, 0, 7);
+    ctxArea.strokeStyle='#f7c579'; ctxArea.lineWidth=2.2; ctxArea.stroke();
+  }
+  ctxArea.fillStyle='#e6ecf5'; ctxArea.font='10.5px sans-serif'; ctxArea.textAlign='center';
+  for(let k=1;k<=N_CURVE;k++) ctxArea.fillText(String(k), toX(k), H-padB+14);
+  ctxArea.fillText('Subdivision level n (2^n strips total)', (padL+W-padR)/2, H-6);
+  ctxArea.textAlign='right';
+  [0, 0.25, 0.5].forEach(v=>{ if(v<=yMax) ctxArea.fillText(v.toFixed(2), padL-6, toY(v)+3); });
+  ctxArea.save(); ctxArea.translate(12,(padT+H-padB)/2); ctxArea.rotate(-Math.PI/2);
+  ctxArea.textAlign='center'; ctxArea.fillText('area', 0, 0); ctxArea.restore();
+}
+
+function drawDirSpectrum(n){
+  const m = Math.pow(2,n);
+  const e = fanEdges(n);
+  const W = cvDir.width, H = cvDir.height;
+  const padL=90, padR=16, padT=20, padB=42;
+  ctxDir.clearRect(0,0,W,H);
+  const emin = Math.min(...e), emax = Math.max(...e);
+  const toX = deg => padL + (deg-emin+2)/(emax-emin+4)*(W-padL-padR);
+  const rows = [{y:padT, label:'after shift'}, {y:padT+(H-padT-padB)/2, label:'before shift'}];
+  const barH = (H-padT-padB)/2 - 14;
+  rows.forEach(row=>{
+    for(let i=0;i<m;i++){
+      const lo = Math.min(e[i], e[i+1]), hi = Math.max(e[i], e[i+1]);
+      ctxDir.fillStyle = colorFor(i,m);
+      ctxDir.fillRect(toX(lo), row.y, Math.max(toX(hi)-toX(lo),1), barH);
+    }
+    ctxDir.fillStyle='#e6ecf5'; ctxDir.font='11px sans-serif'; ctxDir.textAlign='right'; ctxDir.textBaseline='middle';
+    ctxDir.fillText(row.label, padL-8, row.y+barH/2);
+  });
+  ctxDir.textBaseline='alphabetic'; ctxDir.textAlign='center'; ctxDir.fillStyle='#e6ecf5'; ctxDir.font='10.5px sans-serif';
+  [emin, (emin+emax)/2, emax].forEach(v=>{
+    ctxDir.fillText(v.toFixed(0)+'°', toX(v), H-padB+16);
+  });
+  ctxDir.fillText('Edge direction angle (degrees)', (padL+W-padR)/2, H-8);
+}
+
+function render(){
+  const n = parseInt(nSlider.value, 10);
+  const alpha = parseFloat(aSlider.value);
+  nVal.textContent = n;
+  aVal.textContent = alpha.toFixed(2);
+  drawSource(n);
+  const area = drawTree(n, alpha);
+  drawAreaCurve(n, alpha, area);
+  drawDirSpectrum(n);
+}
+
+const nSlider = document.getElementById('nSlider');
+const aSlider = document.getElementById('aSlider');
+const nVal = document.getElementById('nVal');
+const aVal = document.getElementById('aVal');
+nSlider.addEventListener('input', render);
+aSlider.addEventListener('input', render);
+
+document.getElementById('bestBtn').addEventListener('click', ()=>{
+  const n = parseInt(nSlider.value, 10);
+  let best = 0.62, bestArea = Infinity;
+  for(let a=50; a<=100; a+=1){
+    const alpha = a/100;
+    const area = rasterUnionArea(perronPieces(n, alpha), RES_SCAN);
+    if(area < bestArea){ bestArea = area; best = alpha; }
+  }
+  aSlider.value = best.toFixed(2);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Matrices &amp; Transformations · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="A matrix is not a table of numbers, it's a transformation of space. Ax is a recipe for the columns; rank is how much room they span; the null space is what got flattened." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 2rem 0; }
+			.demo {
+				display: block; text-decoration: none; border-radius: 4px;
+				padding: 1.4rem 1.5rem 1.5rem; color: #e6ecf5;
+				background: linear-gradient(160deg, #1b2b47 0%, #0f1826 100%);
+				border: 1px solid #2a3c5e; transition: transform .18s ease, border-color .18s ease;
+			}
+			.demo:hover { transform: translateY(-3px); border-color: #b388ff; }
+			.demo .tag {
+				font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+				color: #f0a63c; display: block; margin-bottom: 0.5rem;
+			}
+			.demo > strong { display: block; font-size: 1.12em; color: #fff; margin-bottom: 0.45rem; }
+			.demo span.d { display: block; font-size: 0.86em; color: #93a4c0; line-height: 1.7; }
+			.demo .go { display: block; margin-top: 0.9rem; font-size: 0.82em; color: #8fe3ed; }
+			.ladder { border-left: 4px solid #f0a63c; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.ladder h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.ladder p { margin: 0; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Matrices &amp; Transformations</h1>
+							<p>A matrix isn't a table of numbers. It's a single transformation of space.
+							Watch what it does to the unit cube and you know everything about it.</p>
+						</header>
+
+						<div class="eqbox" style="border-left-color:#f0a63c">
+							<span class="lbl">Following on</span><br />
+							The last section ended with the same question having a plane, a line, or exactly two
+							points for an answer, depending on how many conditions you were given.<br />
+							<strong>Those "dimensions" grow their own geometric shape here.</strong>
+						</div>
+
+						<h2>First, know what it actually is</h2>
+
+						<p>A matrix isn't a vector and isn't a pile of loose numbers. It's
+						<strong>a stack of column vectors</strong>.</p>
+
+						<span class="image main"><img src="images/photo_toast.jpg" alt="Using a loaf of bread to explain matrices, column vectors, column space and rank" /></span>
+
+						<p>The whole loaf is the matrix $A$. Slice it once, vertically, and you get one slice —
+						that's a <strong>column vector</strong>. The space those slices can span is the
+						<strong>column space</strong>, and <strong>the number of genuinely different slices is the
+						rank</strong> — if two slices are identical, they only count once.</p>
+
+						<hr class="major" />
+
+						<h2>One thread: spanning and collapsing</h2>
+
+						<p>Now the shape is settled, look at the operation. Multiplying a vector $\mathbf x$ by a
+						matrix $A$ is easiest to read as a row-by-row calculation. Read it a different way and
+						everything clicks: <strong>read it down the columns.</strong></p>
+
+						<div class="eqbox" style="text-align:center">
+							$A\mathbf x=x_1\mathbf a_1+x_2\mathbf a_2+x_3\mathbf a_3$
+						</div>
+
+						<p>$\mathbf x$ isn't something being "acted on" — it's <strong>a recipe</strong>: how many
+						parts of each of $A$'s columns to take, laid end to end.</p>
+
+						<p>That one sentence pulls everything else along with it:</p>
+
+						<div class="ladder">
+							<h3>Whatever the columns span, that's where you can go</h3>
+							<p>Every weighted combination of the three columns makes up the
+							<strong>column space</strong>. $A\mathbf x=\mathbf b$ has a solution exactly when
+							$\mathbf b$ lies in the column space — anywhere out of reach, and no recipe will ever
+							get you there.</p>
+						</div>
+
+						<div class="ladder" style="border-left-color:#b388ff">
+							<h3>How much room the columns span, that's the rank</h3>
+							<p>If three columns span the full three dimensions, $\det\ne0$ and every $\mathbf b$
+							gets exactly one recipe. If the third column happens to lie in the plane the first two
+							already span, it's redundant — rank drops to 2 and the column space collapses onto a
+							plane.</p>
+						</div>
+
+						<div class="ladder" style="border-left-color:#ef6a5e">
+							<h3>Whatever got flattened, that's the null space</h3>
+							<p>A rank shortfall means there's some nonzero $\mathbf x$ with $A\mathbf x=\mathbf 0$:
+							a genuinely nonempty recipe that comes out to the origin anyway. All such $\mathbf x$
+							form the <strong>null space</strong> — exactly the dimension that got squashed flat.</p>
+						</div>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#6ed6a0">
+							$\text{rank}+\text{nullity}=n$
+							<br /><span class="lbl">dimension spanned + dimension flattened = the dimension you started with, none of it goes missing</span>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Five demos you can drag</h2>
+
+						<p>Taken in order, the five below are exactly this thread: from "what is $A\mathbf x$
+						actually computing" all the way to the four subspaces. Every one rotates and lets you edit
+						the matrix entries.</p>
+
+						<div class="demos">
+							<a class="demo" href="demo-ax-columns.html" target="_blank" rel="noopener">
+								<span class="tag">① Entry point</span>
+								<strong>Ax is a linear combination of the columns</strong>
+								<span class="d">Drag three sliders and watch three scaled column vectors laid end
+								to end. When $\mathbf x$ changes, it's never $A$ that moves — it's how many parts of
+								each column you're taking.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-rank.html" target="_blank" rel="noopener">
+								<span class="tag">② Collapse</span>
+								<strong>Row rank equals column rank — squeeze from either side and both collapse</strong>
+								<span class="d">Only the third row is adjustable. The moment it lands in the plane
+								spanned by the first two, row space and column space collapse to a plane
+								<em>simultaneously</em> — that simultaneity is exactly what "row rank = column rank" means.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-nullspace.html" target="_blank" rel="noopener">
+								<span class="tag">③ Solution set</span>
+								<strong>Null space, solution set, and column space</strong>
+								<span class="d">The full solution set of $A\mathbf x=\mathbf b$ = one particular
+								solution + the entire null space. So the solution set is a
+								<strong>shifted line</strong>, not one through the origin.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-subspaces.html" target="_blank" rel="noopener">
+								<span class="tag">④ The full picture</span>
+								<strong>How the four subspaces collapse together</strong>
+								<span class="d">Row space, column space, null space, left null space in one frame.
+								At full rank the last two are just the origin; the moment rank drops, two lines
+								spring out of the origin at once.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-ata.html" target="_blank" rel="noopener">
+								<span class="tag">⑤ Where this leads</span>
+								<strong>The shape of Ax and AᵀAx</strong>
+								<span class="d">$A^{\mathsf T}A$ isn't "multiply by $A$ again." The line in the panel,
+								$\mathbf x^{\mathsf T}A^{\mathsf T}A\mathbf x=\lVert A\mathbf x\rVert^2$ —
+								that's where the least-squares normal equation comes from.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Four ideas</h2>
+
+						<div class="concept">
+							<h3>Column Space</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Every linear combination of $A$'s columns, written $C(A)$.</dd>
+								<dt>What it measures</dt>
+								<dd>Everywhere this machine <strong>can reach</strong>. $A\mathbf x=\mathbf b$ has a
+								solution $\iff\mathbf b\in C(A)$.</dd>
+								<dt>Where it sits</dt>
+								<dd>Its dimension is exactly the rank. For a $3\times3$ matrix, the column space is
+								all of three-space (full rank), a plane (rank 2), a line (rank 1), or just the
+								origin (the zero matrix).</dd>
+								<dt>Collapse means</dt>
+								<dd class="zero">Some $\mathbf b$'s are permanently out of reach — the equation has
+								no solution, not because you made a mistake, but because it was never in range.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#ef6a5e">
+							<h3>Null Space</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Every $\mathbf x$ satisfying $A\mathbf x=\mathbf 0$, written $N(A)$.</dd>
+								<dt>What it measures</dt>
+								<dd>The directions $A$ <strong>crushes to nothing</strong>. It always contains the
+								origin, since $A\mathbf 0=\mathbf 0$ is automatic.</dd>
+								<dt>Where it sits</dt>
+								<dd>The general solution to $A\mathbf x=\mathbf b$ = any one particular solution +
+								the whole null space. The bigger the null space, the less unique the solution.
+								That "$k$" in "the answer is $k(3,-1,1)$" from the previous page — that's the null
+								space's one degree of freedom.</dd>
+								<dt>Just the origin means</dt>
+								<dd class="zero">Nothing got flattened, $A$ is invertible, every $\mathbf b$
+								corresponds to exactly one $\mathbf x$.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Rank</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>The dimension of the column space. It equals the dimension of the row space too —
+								<strong>those two numbers are always the same</strong>.</dd>
+								<dt>What it measures</dt>
+								<dd>How much genuinely independent information a matrix actually holds. Rows and
+								columns are the same information sliced two ways, so counting from either side gives
+								the same number.</dd>
+								<dt>Where it sits</dt>
+								<dd>$\text{rank}+\text{nullity}=n$. What's spanned plus what's flattened equals the
+								dimension you started with. In Gaussian elimination, "the number of nonzero rows"
+								is exactly what it's counting.</dd>
+								<dt>A shortfall means</dt>
+								<dd class="zero">$\det=0$, non-invertible, columns linearly dependent, nontrivial
+								null space — four ways of saying the same thing.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>$A^{\mathsf T}A$, the Gram Matrix</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$A$ transposed, times $A$ — always square, always symmetric, always positive
+								semidefinite.</dd>
+								<dt>What it measures</dt>
+								<dd>It <strong>pulls out length information</strong>:
+								$\mathbf x^{\mathsf T}A^{\mathsf T}A\mathbf x=\lVert A\mathbf x\rVert^2$. Want to know
+								how long $A\mathbf x$ is? You never actually have to compute $A\mathbf x$ itself.</dd>
+								<dt>Where it sits</dt>
+								<dd>Least squares wants to minimise $\lVert A\mathbf x-\mathbf b\rVert^2$; taking the
+								derivative gives the normal equation
+								$A^{\mathsf T}A\mathbf x=A^{\mathsf T}\mathbf b$.
+								<strong>The next section is built entirely on this equation.</strong></dd>
+								<dt>Non-invertible means</dt>
+								<dd class="zero">$A$'s columns are linearly dependent, and the least-squares
+								solution isn't unique — there's redundancy among the independent variables in your data.</dd>
+							</dl>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Four subspaces, one number</h2>
+
+						<p>Line up the four subspaces of an equation system, and they turn out not to be four
+						separate facts — <strong>all four dimensions are decided by the single number, rank $r$</strong>:
+						$r,\ n-r,\ r,\ m-r$.</p>
+
+						<span class="image main"><img src="images/mat_four_spaces.png" alt="The four subspaces' dimensions, all decided by the rank" /></span>
+
+						<p>The left example has three mutually non-proportional rows, full rank, both null spaces
+						just the origin. The right example changes exactly one thing — row 2 becomes twice row 1 —
+						and rank drops to 2: the row space and column space each lose a dimension, and both null
+						spaces gain one back. <strong>The total never changes.</strong></p>
+
+						<div class="eqbox">
+							<span class="lbl">Two orthogonal direct sums</span><br />
+							$\mathbb{R}^n=C(A^{\mathsf T})\oplus N(A)$
+							　　　　$\mathbb{R}^m=C(A)\oplus N(A^{\mathsf T})$<br />
+							<br />
+							The space you start from splits in two: one half is where solutions come from, one half
+							is the direction they're free to slide in.<br />
+							The space you arrive in also splits in two: one half you can reach, one half you never can.
+						</div>
+
+						<blockquote>Linear dependence isn't a computational accident — it's
+						<strong>independent directions running out.</strong><br />
+						Drop the rank by one and all four subspaces change shape at once.</blockquote>
+
+						<p>Working through three actual planes makes this stick better than memorising the
+						definition: two rows proportional with matching right-hand sides is the same plane twice;
+						proportional but mismatched is two parallel planes that never meet; not proportional at
+						all is where two planes genuinely cross.</p>
+
+						<ul class="actions">
+							<li><a href="#" class="button primary" data-gated="../assets/data/four-spaces-notes.md">Download · Linear algebra through three planes<br /><span class="btn-en">Four subspaces, worked through</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Back to the actual builds</h2>
+
+						<p>The servo calibration page fits a third-order polynomial by solving an overdetermined
+						$A\mathbf x=\mathbf b$: 61 rows of equations, 4 unknown coefficients, $\mathbf b$ not in the
+						column space, so it settles for the closest point instead — solving exactly
+						$A^{\mathsf T}A\mathbf x=A^{\mathsf T}\mathbf b$.</p>
+
+						<p>The S-curve, on the other hand, has only 6 conditions and 6 coefficients, $\det=2\ne0$,
+						full rank, null space just the origin — a unique solution.
+						<strong>Same framework, two different endings, and the only difference is rank.</strong></p>
+
+						<ul class="actions">
+							<li><a href="servo-calib.html" class="button">Build · Servo Calibration<br /><span class="btn-en">Least squares in practice</span></a></li>
+							<li><a href="solar-tracker.html" class="button">Build · That First Twitch<br /><span class="btn-en">A unique solution</span></a></li>
+						</ul>
+
+						<ul class="actions">
+							<li><a href="vectors.html" class="button">&larr; Previous: Vectors &amp; Space<br /><span class="btn-en">Vectors &amp; Space</span></a></li>
+							<li><a href="calculus.html" class="button primary">Next: Change &amp; Gradients<br /><span class="btn-en">Change &amp; Gradients</span></a></li>
+						</ul>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

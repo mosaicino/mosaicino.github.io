@@ -1,0 +1,376 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Neural Networks · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="A layer is a linear map plus a bend. Backpropagation is the chain rule, run right to left, with intermediate results cached along the way." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 2rem 0; }
+			.demo {
+				display: block; text-decoration: none; border-radius: 4px;
+				padding: 1.4rem 1.5rem 1.5rem; color: #e6ecf5;
+				background: linear-gradient(160deg, #1b2b47 0%, #0f1826 100%);
+				border: 1px solid #2a3c5e; transition: transform .18s ease, border-color .18s ease;
+			}
+			.demo:hover { transform: translateY(-3px); border-color: #b388ff; }
+			.demo .tag {
+				font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+				color: #f0a63c; display: block; margin-bottom: 0.5rem;
+			}
+			.demo strong { display: block; font-size: 1.12em; color: #fff; margin-bottom: 0.45rem; }
+			.demo span.d { display: block; font-size: 0.86em; color: #93a4c0; line-height: 1.7; }
+			.demo .go { display: block; margin-top: 0.9rem; font-size: 0.82em; color: #8fe3ed; }
+			.ladder { border-left: 4px solid #f0a63c; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.ladder h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.ladder p { margin: 0; }
+			pre code { font-size: 0.86em; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Neural Networks</h1>
+							<p>A matrix, a bend, stacked over and over.<br />
+							Everything the last five sections covered shows up here at once.</p>
+						</header>
+
+						<div class="eqbox" style="border-left-color:#f0a63c">
+							<span class="lbl">Everything this page assumes</span><br />
+							A matrix is <strong>a single linear transformation</strong>
+							(<a href="matrix.html" style="color:#8fe3ed">Matrices &amp; Transformations</a>)<br />
+							Minimising a loss means <strong>setting the derivative to zero</strong> or
+							<strong>walking down the negative gradient</strong>
+							(<a href="calculus.html" style="color:#8fe3ed">Change &amp; Gradients</a>)<br />
+							Fitting means <strong>finding the closest point you can actually reach</strong>
+							(<a href="fitting.html" style="color:#8fe3ed">Fitting &amp; Least Squares</a>)<br />
+							<br />
+							<strong>A neural network introduces no new mathematics — it just stacks these three
+							things, over and over.</strong>
+						</div>
+
+						<h2>What one layer actually does</h2>
+
+						<p>Strip away every metaphor and one layer of a neural network does exactly two things:</p>
+
+						<div class="eqbox" style="text-align:center">
+							$z=xW+b\qquad\longrightarrow\qquad h=\sigma(z)$
+							<br /><span class="lbl">first an affine transformation, then bend it, element by element</span>
+						</div>
+
+						<p>The first step is what the matrices page already covered: $W$ sends the input
+						somewhere else, $b$ shifts it. The second step, $\sigma$, is the
+						<strong>activation function</strong> — $\tanh$, for instance — and it's the
+						<em>only</em> source of nonlinearity in the whole thing.</p>
+
+						<div class="ladder">
+							<h3>Why that one bend has to be there</h3>
+							<p>Because linear transformations stacked on top of each other are still just one
+							linear transformation. $W_2(W_1x)=(W_2W_1)x$ — stack a hundred layers and the effect
+							is identical to a single matrix. <strong>Without $\sigma$, depth accomplishes
+							nothing.</strong> Only after the bend does stacking start producing anything new.</p>
+						</div>
+
+						<hr class="major" />
+
+						<h2>How this differs from fitting a polynomial</h2>
+
+						<span class="image main"><img src="images/nn1_basis.png" alt="A polynomial's basis functions are fixed; a network's basis functions are learned" /></span>
+
+						<p>The fitting page used $1,\,x,\,x^2,\,x^3$ to fit the servo's calibration curve. Those
+						four functions were <strong>chosen by you</strong> — every column of the design matrix $A$
+						was fixed in advance, and least squares only had to solve for their weights.</p>
+
+						<p>A network doesn't work that way. The three $\tanh$ curves in the middle panel — their
+						steepness and position are <strong>also learned</strong>. Training doesn't just tune the
+						final weighted sum; it tunes which basis functions get used in the first place.</p>
+
+						<div class="eqbox">
+							<span class="lbl">Two different divisions of labour</span><br />
+							<strong>Least squares</strong>: you fix the basis functions, it solves for the weights
+							→ a linear system, solved in one step<br />
+							<strong>Neural network</strong>: it tunes both the basis functions and the weights
+							→ nonlinear optimisation, only solvable by trial and error
+						</div>
+
+						<p>The right panel shows a quadratic pieced together from three weighted $\tanh$ curves,
+						already down to an RMS of $0.027$. <strong>Three hidden units is enough</strong> — they
+						aren't $1,x,x^2$, but they piece together the same effect.</p>
+
+						<hr class="major" />
+
+						<h2>Training: spreading the blame for the error</h2>
+
+						<span class="image main"><img src="images/nn2_chain.png" alt="Forward pass computes left to right; backward pass sends the derivative right to left along the same path" /></span>
+
+						<p>The forward pass is straightforward: $x$ goes in, gets computed layer by layer up to
+						$\hat y$, and compared against the target to get a loss $L$.</p>
+
+						<p>The hard question runs the other way: <strong>to shrink $L$, which direction should that
+						first-layer $w_1$ move?</strong> It sits several layers back from the output — its
+						influence is indirect. The answer is the chain rule from
+						<a href="calculus.html">Change &amp; Gradients</a>:</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#ef6a5e">
+							$\dfrac{\partial L}{\partial w_1}
+							=\dfrac{\partial L}{\partial\hat y}\cdot
+							\dfrac{\partial\hat y}{\partial H}\cdot
+							\dfrac{\partial H}{\partial z}\cdot
+							\dfrac{\partial z}{\partial w_1}$
+						</div>
+
+						<p>A string of multiplications. <strong>Backpropagation is running that string from right
+						to left</strong>, caching the intermediate results along the way for the earlier layers to
+						reuse — otherwise every parameter would have to redo the whole chain from scratch, at
+						absurd cost.</p>
+
+						<p>Written as code it's only three lines, each matching one of those partial derivatives:</p>
+
+<pre><code>dY = 2*(yhat - y)/61              # ∂L/∂ŷ
+dH = dY @ w2.T * (1 - tanh(z)**2) # times ∂ŷ/∂H, then ∂H/∂z
+dw = x.T @ dH                     # times ∂z/∂w₁</code></pre>
+
+						<p>That $1-\tanh^2 z$ at the end of line two is the derivative of $\tanh$.
+						<strong>Its maximum is 1, and it drops toward zero fast at both ends</strong> — stack a few
+						dozen layers and multiplying that many numbers under 1 together leaves almost nothing by
+						the time the gradient reaches the front. That's vanishing gradients, and part of why ReLU
+						later replaced $\tanh$ in most architectures.</p>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-nn.html" target="_blank" rel="noopener">
+								<span class="tag">Core</span>
+								<strong>Training a network to fit a quadratic curve</strong>
+								<span class="d">61 samples, 3 hidden units. That texture in panel ② is the 61×3
+								activation matrix, and it keeps changing during training — that's the basis
+								functions being learned in real time. The three code panels at the bottom light up
+								in step with the training phase. Drag the learning rate η: too large and the loss
+								jumps around; too small and it barely moves.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Four ideas</h2>
+
+						<div class="concept">
+							<h3>Activation Function</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>A nonlinear function applied element-wise: $\tanh$, ReLU, sigmoid.</dd>
+								<dt>Why it has to be there</dt>
+								<dd>It's the <strong>only source of nonlinearity</strong> in the whole network.
+								Remove it and any number of layers collapses back into a single matrix — the same
+								expressive power as one linear regression.</dd>
+								<dt>Where it sits</dt>
+								<dd>It's exactly what makes "learnable basis functions" possible in the first
+								place — where the bend sits and how steep it is is decided by $W,b$, and $W,b$ are
+								what training solves for.</dd>
+								<dt>The cost of choosing badly</dt>
+								<dd class="zero">$\tanh$'s derivative vanishes at both ends, so deep networks lose
+								the gradient; ReLU's derivative is exactly 0 for negative input, so a neuron can
+								"die" and stop updating altogether.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#ef6a5e">
+							<h3>Backpropagation</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Running the chain rule from output back to input, caching intermediate results
+								along the way.</dd>
+								<dt>What it isn't</dt>
+								<dd>It's <strong>not a new method of differentiation</strong> — it's just the chain
+								rule. The real contribution is that "cache and reuse" organisation, which keeps the
+								cost of computing gradients roughly the same as the forward pass, instead of
+								exploding with depth.</dd>
+								<dt>Where it sits</dt>
+								<dd>Modern frameworks call this automatic differentiation. You write the forward
+								pass; the gradient is derived for you.</dd>
+								<dt>Where it breaks</dt>
+								<dd class="zero">If any single local derivative along the chain gets close to zero,
+								every layer behind it stops receiving a usable signal.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>Gradient Descent</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\theta\leftarrow\theta-\eta\,\nabla L$ — take one step in the direction the
+								loss decreases fastest.</dd>
+								<dt>The learning rate $\eta$</dt>
+								<dd>Step size. Too large and you overshoot the valley and oscillate; too small and
+								it takes forever. Drag the slider in the demo and watch the loss curve react
+								directly.</dd>
+								<dt>Where it sits</dt>
+								<dd>It's the fallback for when "set the derivative to zero" can't be solved
+								directly. Least squares solves in one step because the loss is quadratic in the
+								parameters and its derivative is linear; a network's loss is nonlinear, so it has no
+								choice but to feel its way downhill.</dd>
+								<dt>Where it stops</dt>
+								<dd class="zero">Wherever the gradient hits zero — which might be a minimum, or
+								might be a saddle point or a local minimum.
+								<strong>Nothing guarantees it's the global optimum.</strong></dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Overfitting</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>The model has learned the noise in the training data along with the signal.</dd>
+								<dt>How to spot it</dt>
+								<dd>Training loss keeps dropping, but performance on new data gets worse. In the
+								demo, push the noise slider up and let it train longer — the curve starts chasing
+								individual noisy points.</dd>
+								<dt>Where it sits</dt>
+								<dd>More parameters make overfitting easier. On the servo calibration page, going
+								from 3rd to 4th order bought almost nothing —
+								<strong>that flat line was the model telling you to stop</strong>. Any more
+								coefficients would just be fitting noise.</dd>
+								<dt>The flip side</dt>
+								<dd class="zero">Too few parameters and the model can't even express the real
+								pattern — underfitting. There's no formula for the trade-off between the two, only
+								judgement.</dd>
+							</dl>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Back to the servo: thirty thousand steps versus one</h2>
+
+						<span class="image main"><img src="images/fig5_ls_vs_nn.png" alt="Least squares compared with a small neural network on the same real calibration data" /></span>
+
+						<p>Same 61 real calibration points. Least squares solves a linear system,
+						<strong>one step, 0.621°</strong>. A small network runs gradient descent for
+						<strong>thirty thousand epochs and reaches 0.615°</strong>. Almost tied.</p>
+
+						<div class="ladder" style="border-left-color:#b388ff">
+							<h3>How to read that result</h3>
+							<p>It's not that the network is useless — it's that <strong>when you already know what
+							shape the curve should be, writing that shape into the model beats letting a network
+							guess it.</strong> A potentiometer's voltage-divider response was always going to be
+							low-order and smooth; three or four coefficients describe it fine, and least squares
+							solves for them in one step with a uniqueness guarantee thrown in.<br />
+							Networks earn their keep where you <em>don't</em> know the shape — images, speech,
+							language, places where nobody could write down what the "basis function" should
+							even look like.</p>
+						</div>
+
+						<p>One more thing worth noticing: both methods get stuck around $0.6°$ and go no further.
+						They're running into the same ceiling — the fingerprint that $2.07°$ of mechanical backlash
+						leaves behind in the data. <strong>Changing the model can't fix a mechanical
+						problem.</strong></p>
+
+						<ul class="actions">
+							<li><a href="servo-calib.html" class="button">Build · Servo Calibration<br /><span class="btn-en">Where the data came from</span></a></li>
+							<li><a href="fitting.html" class="button">Back to · Fitting &amp; Least Squares<br /><span class="btn-en">One-step solution</span></a></li>
+						</ul>
+
+						<hr class="major" />
+
+						<h2>One sentence</h2>
+
+						<blockquote>A neural network isn't a new branch of mathematics.<br />
+						<strong>It's matrices, derivatives, and fitting — three familiar things, stacked many
+						layers deep.</strong><br />
+						What makes it powerful isn't mathematical depth — it's that past a certain scale,
+						"find your own basis functions" starts to beat "let a person choose them for you."</blockquote>
+
+						<ul class="actions">
+							<li><a href="fitting.html" class="button">&larr; Previous: Fitting &amp; Least Squares<br /><span class="btn-en">Fitting &amp; Least Squares</span></a></li>
+							<li><a href="index.html" class="button primary">Back to Home · Eight Sections<br /><span class="btn-en">All eight</span></a></li>
+						</ul>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+	</body>
+</html>

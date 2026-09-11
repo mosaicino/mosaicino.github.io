@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ax Is a Linear Combination of A's Columns</title>
+<style>
+  :root{
+    --ink:#0a0f14; --panel:#101821; --rule:#20303d;
+    --text:#d7e3ec; --muted:#6c8497;
+    --a1:#4d9de0; --a2:#c47bd8; --a3:#4fc3a1;
+    --ax:#f0a92c; --xv:#f4626d;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:"Iowan Old Style","Songti SC",Georgia,"Times New Roman",serif;
+    overflow:hidden;-webkit-text-size-adjust:100%;
+  }
+  canvas{display:block;touch-action:none;position:absolute;inset:0}
+
+  header{position:absolute;top:16px;left:20px;pointer-events:none;max-width:24em}
+  header h1{margin:0;font-size:18px;font-weight:600}
+  header p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.55}
+  header p em{font-style:normal;color:var(--ax)}
+
+  #panel{
+    position:absolute;right:16px;top:16px;width:296px;max-height:calc(100% - 32px);
+    background:var(--panel);border:1px solid var(--rule);border-radius:14px;
+    padding:16px 18px;overflow-y:auto;
+  }
+  h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--muted)}
+  h2:not(:first-child){margin-top:20px}
+
+  /* matrix A, coloured by column */
+  .mat{display:flex;gap:0;align-items:stretch;font-family:ui-monospace,Menlo,monospace}
+  .bracket{width:8px;border:1.5px solid var(--muted);border-right:none;border-radius:3px 0 0 3px}
+  .bracket.r{border:1.5px solid var(--muted);border-left:none;border-radius:0 3px 3px 0}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);flex:1;padding:6px 4px;gap:2px 0}
+  .cols span{text-align:center;font-size:14px;padding:2px 0;font-variant-numeric:tabular-nums}
+  .colhead{display:grid;grid-template-columns:repeat(3,1fr);margin:6px 8px 0;font-size:12px;text-align:center}
+
+  .row{display:flex;align-items:center;gap:10px;margin:12px 0}
+  .row label{width:22px;font-size:15px;flex:none}
+  .row output{
+    width:52px;text-align:right;flex:none;
+    font-family:ui-monospace,Menlo,monospace;font-size:14px;font-variant-numeric:tabular-nums;
+  }
+  input[type=range]{flex:1;min-width:0;accent-color:var(--muted);height:22px}
+  input[type=range]:focus-visible{outline:2px solid var(--ax);outline-offset:3px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:6px 0;border-bottom:1px solid var(--rule)}
+  td:last-child{text-align:right;font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  tr.sum td{color:var(--ax);font-weight:600}
+
+  .seg{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .seg button{
+    flex:1;background:none;border:none;border-right:1px solid var(--rule);
+    color:var(--muted);font:inherit;font-size:13px;padding:8px 0;cursor:pointer;
+  }
+  .seg button:last-child{border-right:none}
+  .seg button[aria-pressed="true"]{background:#18242f;color:var(--text)}
+  .seg button:focus-visible{outline:2px solid var(--ax);outline-offset:-2px}
+
+  label.tog{display:flex;align-items:center;gap:9px;font-size:14px;padding:5px 0;cursor:pointer}
+  label.tog.off{opacity:.4;cursor:default}
+  input[type=checkbox]{accent-color:var(--ax);width:15px;height:15px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+
+  button.ghost{
+    background:none;border:1px solid var(--rule);color:var(--muted);
+    font:inherit;font-size:13px;border-radius:8px;padding:6px 12px;cursor:pointer;margin-top:12px;
+  }
+  button.ghost:hover{color:var(--text);border-color:var(--muted)}
+
+  #toggle{display:none}
+  @media (max-width:760px){
+    header{max-width:none;right:20px}
+    header p{display:none}
+    #panel{
+      left:10px;right:10px;top:auto;bottom:10px;width:auto;
+      max-height:56vh;padding:14px 16px;
+    }
+    #panel[hidden]{display:none}
+    #toggle{
+      display:block;position:absolute;right:14px;bottom:14px;
+      background:var(--panel);border:1px solid var(--rule);color:var(--text);
+      font:inherit;font-size:14px;border-radius:999px;padding:9px 18px;cursor:pointer;
+    }
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid var(--rule,var(--line,#20303d));
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--ink,#0a0f14);position:relative;z-index:50;
+}
+.backbar a{color:var(--muted,#6c8497);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#d7e3ec);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="matrix.html">&larr; Matrices &amp; Transformations</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<canvas id="stage"></canvas>
+
+<header>
+  <h1>Ax is A's three columns added up, weighted by x</h1>
+  <p>The three thin arrows are A's columns a₁ a₂ a₃. The three thick segments are x₁a₁, x₂a₂, x₃a₃, laid end to end &mdash; the tip is <em>Ax</em>. Drag the sliders to see it move.</p>
+</header>
+
+<button id="toggle">Parameters</button>
+
+<aside id="panel">
+  <h2>Matrix A (fixed)</h2>
+  <div class="mat">
+    <div class="bracket"></div>
+    <div class="cols" id="matA"></div>
+    <div class="bracket r"></div>
+  </div>
+  <div class="colhead">
+    <span style="color:var(--a1)">a₁</span>
+    <span style="color:var(--a2)">a₂</span>
+    <span style="color:var(--a3)">a₃</span>
+  </div>
+
+  <h2>Vector x</h2>
+  <div class="row"><label for="s0">x₁</label><input type="range" id="s0"><output id="o0"></output></div>
+  <div class="row"><label for="s1">x₂</label><input type="range" id="s1"><output id="o1"></output></div>
+  <div class="row"><label for="s2">x₃</label><input type="range" id="s2"><output id="o2"></output></div>
+  <button class="ghost" id="reset">Back to (1, 1, 1)</button>
+  <button class="ghost" id="norm">Make components sum to 1</button>
+
+  <h2>Component vectors</h2>
+  <table>
+    <tr><td style="color:var(--a1)">x₁a₁</td><td id="c0"></td></tr>
+    <tr><td style="color:var(--a2)">x₂a₂</td><td id="c1"></td></tr>
+    <tr><td style="color:var(--a3)">x₃a₃</td><td id="c2"></td></tr>
+    <tr class="sum"><td>Ax</td><td id="cs"></td></tr>
+    <tr><td>‖Ax‖</td><td id="cn"></td></tr>
+    <tr><td>x₁+x₂+x₃</td><td id="cq"></td></tr>
+    <tr><td id="cdl">Volume</td><td id="cd"></td></tr>
+  </table>
+
+  <h2>Shape spanned by the columns</h2>
+  <div class="seg" id="seg">
+    <button data-m="none">None</button>
+    <button data-m="para">Parallelogram</button>
+    <button data-m="tri">Triangle</button>
+  </div>
+  <label class="tog" id="capRow"><input type="checkbox" id="tcap"><span class="swatch" style="background:var(--ax)"></span>add cap face a₁a₂a₃, closing into a tetrahedron</label>
+
+  <h2>Display</h2>
+  <label class="tog"><input type="checkbox" id="t1" checked><span class="swatch" style="background:var(--a2)"></span>column vectors a₁ a₂ a₃</label>
+  <label class="tog"><input type="checkbox" id="t2" checked><span class="swatch" style="background:var(--ax)"></span>component chain</label>
+  <label class="tog"><input type="checkbox" id="t3"><span class="swatch" style="background:var(--xv)"></span>original vector x</label>
+  <label class="tog"><input type="checkbox" id="t4"><span class="swatch" style="background:var(--muted)"></span>auto-rotate</label>
+</aside>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== fixed matrix A ===== */
+const A = [
+  [1.0, 0.5, 0.2],
+  [0.3, 0.8, 0.4],
+  [0.1, 0.6, 0.9]
+];
+// column vectors a_j
+const col = j => [A[0][j], A[1][j], A[2][j]];
+const COLS = [col(0), col(1), col(2)];
+const CC = ["#4d9de0", "#c47bd8", "#4fc3a1"];
+const AXC = "#f0a92c", XC = "#f4626d";
+
+const S = {
+  x: [1.0, 1.0, 1.0],
+  az: 0.78, el: 0.38, zoom: 1,
+  faceMode: "tri",           // none | para | tri
+  cap: false,
+  show: {cols:true, chain:true, xv:false, spin:false}
+};
+
+/* ===== vector helpers ===== */
+const add = (a,b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]];
+const sub = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const scl = (a,k) => [a[0]*k, a[1]*k, a[2]*k];
+const dot = (a,b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const len = a => Math.hypot(a[0],a[1],a[2]);
+const cross = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const unit = a => { const n = len(a) || 1; return scl(a, 1/n); };
+const mix = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+
+/* ===== camera ===== */
+const cv = document.getElementById("stage");
+const ctx = cv.getContext("2d");
+let W=0, H=0, focal=0, eye=[0,0,0], fw=[0,0,1], rt=[1,0,0], up=[0,1,0], dist=6;
+const NEAR = 0.08;
+
+function setCamera(){
+  const ce = Math.cos(S.el), se = Math.sin(S.el);
+  eye = [dist*ce*Math.cos(S.az), dist*ce*Math.sin(S.az), dist*se];
+  fw = unit(sub([0,0,0], eye));
+  rt = unit(cross(fw, [0,0,1]));
+  up = cross(rt, fw);
+  focal = (H/2) / Math.tan(23 * Math.PI/180) * S.zoom;
+}
+function toCam(p){ const d = sub(p, eye); return [dot(d,rt), dot(d,up), dot(d,fw)]; }
+function toScr(c){ return [W/2 + focal*c[0]/c[2], H/2 - focal*c[1]/c[2]]; }
+function depth(p){ return toCam(p)[2]; }
+
+function seg(p, q){
+  let a = toCam(p), b = toCam(q);
+  if (a[2] < NEAR && b[2] < NEAR) return null;
+  if (a[2] < NEAR) a = mix(a, b, (NEAR - a[2]) / (b[2] - a[2]));
+  else if (b[2] < NEAR) b = mix(b, a, (NEAR - b[2]) / (a[2] - b[2]));
+  return [toScr(a), toScr(b)];
+}
+
+/* ===== drawing primitives ===== */
+/* ===== filled polygon (near-plane clipped) ===== */
+function clipNear(cam){
+  const out = [];
+  for (let i = 0; i < cam.length; i++){
+    const a = cam[i], b = cam[(i+1) % cam.length];
+    const ain = a[2] >= NEAR, bin = b[2] >= NEAR;
+    if (ain) out.push(a);
+    if (ain !== bin) out.push(mix(a, b, (NEAR - a[2]) / (b[2] - a[2])));
+  }
+  return out;
+}
+
+function poly(pts, fill, stroke){
+  const c = clipNear(pts.map(toCam));
+  if (c.length < 3) return;
+  const s = c.map(toScr);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(s[0][0], s[0][1]);
+  for (let i = 1; i < s.length; i++) ctx.lineTo(s[i][0], s[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke(); }
+  ctx.restore();
+}
+
+// average two hex colours, then apply an alpha
+const hex = h => [1,3,5].map(i => parseInt(h.substr(i,2), 16));
+function blend(h1, h2, alpha){
+  const a = hex(h1), b = hex(h2);
+  return `rgba(${(a[0]+b[0])>>1},${(a[1]+b[1])>>1},${(a[2]+b[2])>>1},${alpha})`;
+}
+
+function line(p, q, color, w, dash){
+  const s = seg(p, q); if (!s) return;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = w;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]); ctx.lineTo(s[1][0], s[1][1]); ctx.stroke();
+  ctx.restore();
+}
+
+function arrow(from, to, color, w, label, labelSize){
+  const s = seg(from, to); if (!s) return;
+  const [o, t] = s;
+  let dx = t[0]-o[0], dy = t[1]-o[1];
+  const L = Math.hypot(dx, dy); if (L < 0.8) return;
+  dx /= L; dy /= L;
+  const head = Math.min(9 + w*2.2, L*0.36), half = head*0.44;
+  const bx = t[0] - dx*head, by = t[1] - dy*head;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(t[0], t[1]);
+  ctx.lineTo(bx - dy*half, by + dx*half);
+  ctx.lineTo(bx + dy*half, by - dx*half);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  if (label) tag(label, t[0] + dx*15, t[1] + dy*15, color, labelSize || 14);
+}
+
+function tag(text, sx, sy, color, size){
+  ctx.save();
+  ctx.font = `600 ${size}px ui-monospace, Menlo, monospace`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const w = ctx.measureText(text).width + 11, h = size + 8;
+  ctx.fillStyle = "rgba(10,15,20,.8)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(sx - w/2, sy - h/2, w, h, 5);
+  else ctx.rect(sx - w/2, sy - h/2, w, h);
+  ctx.fill();
+  ctx.fillStyle = color; ctx.fillText(text, sx, sy);
+  ctx.restore();
+}
+
+const niceStep = range => {
+  const raw = range / 5, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+  return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p;
+};
+
+/* ===== render ===== */
+function draw(){
+  const x = S.x;
+  const parts = [scl(COLS[0], x[0]), scl(COLS[1], x[1]), scl(COLS[2], x[2])];
+  // the four nodes along the chain: 0 -> p1 -> p2 -> Ax
+  const node = [[0,0,0]];
+  for (let i = 0; i < 3; i++) node.push(add(node[i], parts[i]));
+  const Ax = node[3];
+
+  let reach = Math.max(len(Ax), 1);
+  for (const n of node) reach = Math.max(reach, len(n));
+  if (S.show.cols) for (const c of COLS) reach = Math.max(reach, len(c));
+  if (S.show.xv) reach = Math.max(reach, len(x));
+
+  const step = niceStep(reach * 1.3);
+  const R = Math.ceil(reach * 1.18 / step) * step;
+  dist = R * 3.5;
+  setCamera();
+  ctx.clearRect(0, 0, W, H);
+
+  // xy-plane grid
+  for (let i = -R; i <= R + 1e-9; i += step){
+    const edge = Math.abs(Math.abs(i) - R) < 1e-9;
+    const c = edge ? "#1b2b38" : "#14222d";
+    line([i,-R,0], [i,R,0], c, 1);
+    line([-R,i,0], [R,i,0], c, 1);
+  }
+
+  // axes
+  const axL = R * 1.05;
+  for (const [p, name] of [[[axL,0,0],"x₁"], [[0,axL,0],"x₂"], [[0,0,axL],"x₃"]]){
+    line(scl(p,-1), p, "#2b4254", 1.3);
+    const c = toCam(p);
+    if (c[2] > NEAR){ const s = toScr(c); tag(name, s[0], s[1], "#7a94a6", 12); }
+  }
+
+  // collect things to draw, sorted far to near
+  const draws = [];
+
+  // shape spanned by the columns
+  const PAIRS = [[0,1], [1,2], [0,2]];
+  if (S.faceMode === "para"){
+    // parallelogram: 0, ai, ai+aj, aj -- three faces of a parallelepiped
+    for (const [i, j] of PAIRS){
+      const quad = [[0,0,0], COLS[i], add(COLS[i], COLS[j]), COLS[j]];
+      const mid = scl(add(COLS[i], COLS[j]), 0.5);
+      draws.push({
+        d: depth(mid) + 0.02,
+        go: () => poly(quad, blend(CC[i], CC[j], 0.16), blend(CC[i], CC[j], 0.5))
+      });
+    }
+  } else if (S.faceMode === "tri"){
+    // triangle: ai, 0, aj -- the natural shape two vectors enclose in 2D
+    for (const [i, j] of PAIRS){
+      const tri = [COLS[i], [0,0,0], COLS[j]];
+      const mid = scl(add(COLS[i], COLS[j]), 1/3);
+      draws.push({
+        d: depth(mid) + 0.02,
+        go: () => poly(tri, blend(CC[i], CC[j], 0.15), blend(CC[i], CC[j], 0.45))
+      });
+    }
+    // cap face: the triangle joining the three tips, i.e. the plane x1+x2+x3 = 1
+    if (S.cap){
+      const cap = [COLS[0], COLS[1], COLS[2]];
+      const capMid = scl(add(add(COLS[0], COLS[1]), COLS[2]), 1/3);
+      draws.push({
+        d: depth(capMid) + 0.02,
+        go: () => poly(cap, "rgba(240,169,44,.17)", "rgba(240,169,44,.6)")
+      });
+    }
+  }
+
+  if (S.show.cols)
+    COLS.forEach((c, j) => draws.push({
+      d: depth(scl(c, 0.5)),
+      go: () => arrow([0,0,0], c, CC[j], 1.6, "a" + "₁₂₃"[j], 13)
+    }));
+
+  if (S.show.xv)
+    draws.push({d: depth(scl(x, 0.5)), go: () => {
+      arrow([0,0,0], x, XC, 2, "x", 13);
+    }});
+
+  if (S.show.chain){
+    // faint guide lines from the origin to each node
+    for (let i = 1; i < 3; i++)
+      draws.push({d: depth(scl(node[i], 0.5)) + 0.01,
+                  go: () => line([0,0,0], node[i], "rgba(150,175,195,.22)", 1, [4,5])});
+
+    parts.forEach((p, i) => {
+      if (len(p) < 1e-6) return;
+      const mid = mix(node[i], node[i+1], 0.5);
+      draws.push({d: depth(mid), go: () => {
+        arrow(node[i], node[i+1], CC[i], 4, null);
+        const c = toCam(mid);
+        if (c[2] > NEAR){
+          const s = toScr(c);
+          tag(`x${"₁₂₃"[i]}a${"₁₂₃"[i]}`, s[0], s[1] - 16, CC[i], 12);
+        }
+      }});
+    });
+  }
+
+  // Ax always drawn on top
+  draws.sort((a, b) => b.d - a.d);
+  for (const it of draws) it.go();
+  if (len(Ax) > 1e-6) arrow([0,0,0], Ax, AXC, 4.5, "Ax", 15);
+
+  report(parts, Ax);
+}
+
+const f2 = n => (Math.abs(n) < 5e-3 ? 0 : n).toFixed(2);
+const vec = v => `(${f2(v[0])}, ${f2(v[1])}, ${f2(v[2])})`;
+
+function report(parts, Ax){
+  for (let i = 0; i < 3; i++){
+    document.getElementById("o" + i).textContent = S.x[i].toFixed(2);
+    document.getElementById("c" + i).textContent = vec(parts[i]);
+  }
+  document.getElementById("cs").textContent = vec(Ax);
+  document.getElementById("cn").textContent = f2(len(Ax));
+
+  const sum = S.x[0] + S.x[1] + S.x[2];
+  const q = document.getElementById("cq");
+  q.textContent = f2(sum);
+  // when the components sum to 1, Ax lies on the plane of the cap triangle
+  q.style.color = Math.abs(sum - 1) < 0.005 ? AXC : "";
+
+  const D = Math.abs(dot(COLS[0], cross(COLS[1], COLS[2])));
+  const lab = document.getElementById("cdl"), val = document.getElementById("cd");
+  if (S.faceMode === "para"){
+    lab.textContent = "Parallelepiped volume |det A|";
+    val.textContent = f2(D);
+  } else if (S.faceMode === "tri" && S.cap){
+    lab.textContent = "Tetrahedron volume |det A|/6";
+    val.textContent = f2(D / 6);
+  } else if (S.faceMode === "tri"){
+    // the three triangles enclose no volume, so report total area
+    let area = 0;
+    for (const [i, j] of [[0,1],[1,2],[0,2]]) area += len(cross(COLS[i], COLS[j])) / 2;
+    lab.textContent = "Total area of the three triangular faces";
+    val.textContent = f2(area);
+  } else {
+    lab.textContent = "det A";
+    val.textContent = f2(dot(COLS[0], cross(COLS[1], COLS[2])));
+  }
+}
+
+/* ===== canvas sizing ===== */
+function resize(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + "px"; cv.style.height = H + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+addEventListener("resize", resize);
+
+/* ===== rotate / zoom ===== */
+let drag = null, pinch = null;
+cv.addEventListener("pointerdown", e => {
+  drag = {x: e.clientX, y: e.clientY};
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  S.az -= (e.clientX - drag.x) * 0.007;
+  S.el = Math.max(-1.45, Math.min(1.45, S.el + (e.clientY - drag.y) * 0.006));
+  drag = {x: e.clientX, y: e.clientY};
+  draw();
+});
+addEventListener("pointerup", () => drag = null);
+addEventListener("pointercancel", () => drag = null);
+
+cv.addEventListener("touchstart", e => {
+  if (e.touches.length === 2){
+    drag = null;
+    pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                       e.touches[0].clientY - e.touches[1].clientY);
+  }
+}, {passive:true});
+cv.addEventListener("touchmove", e => {
+  if (e.touches.length === 2 && pinch){
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                         e.touches[0].clientY - e.touches[1].clientY);
+    S.zoom = Math.max(0.45, Math.min(3, S.zoom * d / pinch));
+    pinch = d; draw();
+  }
+}, {passive:true});
+cv.addEventListener("touchend", () => pinch = null);
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  S.zoom = Math.max(0.45, Math.min(3, S.zoom * Math.exp(-e.deltaY * 0.0012)));
+  draw();
+}, {passive:false});
+
+/* ===== panel ===== */
+const matA = document.getElementById("matA");
+for (let i = 0; i < 3; i++)
+  for (let j = 0; j < 3; j++){
+    const s = document.createElement("span");
+    s.textContent = A[i][j].toFixed(1);
+    s.style.color = CC[j];
+    matA.appendChild(s);
+  }
+
+for (let i = 0; i < 3; i++){
+  const sl = document.getElementById("s" + i);
+  sl.min = -3; sl.max = 3; sl.step = 0.05; sl.value = S.x[i];
+  sl.addEventListener("input", () => { S.x[i] = parseFloat(sl.value); draw(); });
+}
+document.getElementById("reset").onclick = () => {
+  S.x = [1, 1, 1];
+  for (let i = 0; i < 3; i++) document.getElementById("s" + i).value = 1;
+  draw();
+};
+
+document.getElementById("norm").onclick = () => {
+  const sum = S.x[0] + S.x[1] + S.x[2];
+  if (Math.abs(sum) < 1e-6) return;      // sum of 0 can't be rescaled
+  S.x = S.x.map(v => v / sum);
+  for (let i = 0; i < 3; i++) document.getElementById("s" + i).value = S.x[i];
+  draw();
+};
+
+const segBtns = [...document.querySelectorAll("#seg button")];
+const capBox = document.getElementById("tcap"), capRow = document.getElementById("capRow");
+function setMode(m){
+  S.faceMode = m;
+  for (const b of segBtns) b.setAttribute("aria-pressed", b.dataset.m === m);
+  const usable = m === "tri";
+  capBox.disabled = !usable;
+  capRow.classList.toggle("off", !usable);
+  draw();
+}
+for (const b of segBtns) b.onclick = () => setMode(b.dataset.m);
+capBox.checked = S.cap;
+capBox.onchange = () => { S.cap = capBox.checked; draw(); };
+
+const bind = (id, key) => {
+  const el = document.getElementById(id);
+  el.checked = S.show[key];
+  el.onchange = () => { S.show[key] = el.checked; if (key === "spin") spin(); draw(); };
+};
+bind("t1","cols"); bind("t2","chain"); bind("t3","xv"); bind("t4","spin");
+
+let spinning = false;
+function spin(){
+  if (!S.show.spin || spinning) { if (!S.show.spin) spinning = false; return; }
+  spinning = true;
+  (function loop(){
+    if (!S.show.spin){ spinning = false; return; }
+    S.az += 0.0035; draw(); requestAnimationFrame(loop);
+  })();
+}
+
+const panel = document.getElementById("panel");
+document.getElementById("toggle").onclick = () => { panel.hidden = !panel.hidden; };
+
+setMode(S.faceMode);
+resize();
+})();
+</script>
+</body>
+</html>

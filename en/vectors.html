@@ -1,0 +1,529 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Vectors &amp; Space · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="The dot product measures overlap, the cross product measures spread, the determinant measures volume — three faces of the same idea at different dimensions." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 2rem 0; }
+			.demo {
+				display: block; text-decoration: none; border-radius: 4px;
+				padding: 1.4rem 1.5rem 1.5rem; color: #e6ecf5;
+				background: linear-gradient(160deg, #1b2b47 0%, #0f1826 100%);
+				border: 1px solid #2a3c5e; transition: transform .18s ease, border-color .18s ease;
+			}
+			.demo:hover { transform: translateY(-3px); border-color: #b388ff; }
+			.demo .tag {
+				font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+				color: #f0a63c; display: block; margin-bottom: 0.5rem;
+			}
+			.demo strong { display: block; font-size: 1.12em; color: #fff; margin-bottom: 0.45rem; }
+			.demo span.d { display: block; font-size: 0.86em; color: #93a4c0; line-height: 1.7; }
+			.demo .go { display: block; margin-top: 0.9rem; font-size: 0.82em; color: #8fe3ed; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Vectors &amp; Space</h1>
+							<p>The dot product measures overlap, the cross product measures spread, the determinant
+							measures volume — three faces of the same idea, showing up at different dimensions.</p>
+						</header>
+
+						<div class="eqbox" style="border-left-color:#f0a63c">
+							<span class="lbl">About these notes</span><br />
+							This isn't written like a textbook chapter. Definitions, worked examples, exam technique —
+							your actual textbook already has those. What's here is three things:
+							<strong>what each idea is actually measuring</strong>,
+							<strong>where it sits in the bigger structure</strong>, and
+							<strong>where it's spinning in the real world</strong>.<br />
+							That last one is the point — the four draggable 3D demos further down are what this
+							page is really trying to say.
+						</div>
+
+						<h2>One thread: how many dimensions can you span</h2>
+
+						<p>Every idea in this section is answering the same question from a different angle:
+						<strong>how much space can a set of directions cover.</strong></p>
+
+						<div class="eqbox">
+							<span class="lbl">The dimension ladder</span><br />
+							1 vector　→　one dimension, a line　　　　　　　length $|\mathbf a|$<br />
+							2 vectors　→　two dimensions, a plane　　　　　area $|\mathbf a\times\mathbf b|$<br />
+							3 vectors　→　three dimensions, a volume　　　volume $|\mathbf a\cdot(\mathbf b\times\mathbf c)|$<br />
+							<br />
+							<span class="lbl">And when it fails to span:</span><br />
+							$\det=0$　⟺　coplanar　⟺　linearly dependent　⟺　one direction is redundant
+						</div>
+
+						<p>Equation systems work the other way: they subtract. <strong>Three-dimensional space starts
+						with three degrees of freedom, and every equation removes one.</strong> Three independent
+						equations reduce that to zero, handing you a single point; if one equation is redundant,
+						you're left with a whole line or plane instead. "The dimension of the solution" is counted
+						exactly this way.</p>
+
+						<hr class="major" />
+
+						<h2>Eleven scenes you can drag</h2>
+
+						<p>The animation below walks this whole thread from the start: where length comes from,
+						why $\overrightarrow{AB}=\mathbf b-\mathbf a$ is "end minus start," whether a projection
+						carries a sign, why the cross product ends up perpendicular, how area and volume fall out
+						of it. Every scene rotates, scrubs through time, and can leave a trail.</p>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-vectors11.html" target="_blank" rel="noopener"
+							   style="background:linear-gradient(160deg,#1a2145 0%,#0F1430 100%)">
+								<span class="tag">Core</span>
+								<strong>Vectors: eleven scenes you can rotate</strong>
+								<span class="d">From two applications of Pythagoras to the scalar triple product,
+								one continuous line. The last three scenes take apart real textbook questions and
+								show that $\mathbf a\times\mathbf b$ is literally the solution set of
+								$A\mathbf x=\mathbf 0$.</span>
+								<span class="go">Open all scenes →</span>
+							</a>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Five ideas</h2>
+
+						<div class="concept">
+							<h3>Dot Product</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\mathbf a\cdot\mathbf b=\sum a_ib_i=|\mathbf a||\mathbf b|\cos\theta$ — two vectors
+								give back a single <strong>number</strong>.</dd>
+								<dt>What it measures</dt>
+								<dd>Projection. How long a shadow $\mathbf a$ casts along $\mathbf b$'s direction,
+								scaled by $\mathbf b$'s own length. So it measures how much two directions overlap.</dd>
+								<dt>Where it sits</dt>
+								<dd>The three-dimensional case of an inner product. It defines length
+								($|\mathbf a|^2=\mathbf a\cdot\mathbf a$) and angle — meaning
+								<strong>geometry itself grows out of the dot product</strong>. It exists in any
+								dimension, not just three, and leads on to inner product spaces, orthogonal
+								projection, Gram–Schmidt, least squares, Fourier analysis.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">Perpendicular. No shadow at all — one direction contributes nothing
+								to the other.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#3ec8d8">
+							<h3>Cross Product</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\mathbf a\times\mathbf b$ — two vectors give back a <strong>vector</strong>,
+								with $|\mathbf a\times\mathbf b|=|\mathbf a||\mathbf b|\sin\theta$.</dd>
+								<dt>What it measures</dt>
+								<dd>Two things at once: its length is the <strong>area</strong> of the parallelogram
+								the two vectors span, and its direction is the <strong>normal</strong> to that plane.</dd>
+								<dt>Where it sits</dt>
+								<dd><strong>Only exists in three dimensions</strong> — it relies on "the direction
+								perpendicular to a plane" being unique, which is only true at $n=3$. In two dimensions
+								you'd have to step outside the plane; in four there'd be infinitely many. It leads on
+								to the exterior product and differential forms — the version that works in any
+								dimension.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">Parallel. The parallelogram collapses to a line, area zero.</dd>
+							</dl>
+						</div>
+
+						<p>The two products aren't two separate tools sitting side by side — together they account
+						for <strong>everything</strong> a pair of vectors can tell you:</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#3ec8d8">
+							$(\mathbf a\cdot\mathbf b)^2+|\mathbf a\times\mathbf b|^2=|\mathbf a|^2|\mathbf b|^2$
+							<br /><span class="lbl">one takes $\cos$, the other takes $\sin$; together, everything</span>
+						</div>
+
+						<p>So "which one do I need" is never really a hard question: are you after the overlap, or
+						the spread.</p>
+
+						<span class="image main"><img src="images/vec_dotcross.png" alt="Dot and cross product for the same pair of vectors, side by side" /></span>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Determinant</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$n$ vectors in $n$ dimensions give back a number. In three dimensions it's the
+								scalar triple product $\mathbf a\cdot(\mathbf b\times\mathbf c)$.</dd>
+								<dt>What it measures</dt>
+								<dd><strong>Signed volume</strong>. Order two is area, order three is volume, order
+								$n$ is $n$-dimensional volume. The sign records orientation — left-handed or
+								right-handed.</dd>
+								<dt>Where it sits</dt>
+								<dd>The cross product's "area" generalised to any dimension. Its seemingly arbitrary
+								properties are all geometry: swap two rows and the sign flips (orientation reverses),
+								scale a row by $k$ and the value scales by $k$ (one edge stretched),
+								<strong>add a multiple of one row to another and the value doesn't change</strong>
+								(a shear — same base, same height). That last property is what makes Gaussian
+								elimination legal.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">Failure to span. Coplanar vectors, linear dependence, a
+								non-invertible matrix, a system without a unique solution — different names for the
+								same fact.</dd>
+							</dl>
+						</div>
+
+						<span class="image main"><img src="images/vec_detzero.png" alt="Three vectors coplanar means the determinant is zero" /></span>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>The Plane Equation</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\mathbf n\cdot(\mathbf r-\mathbf r_0)=0$, which expands to
+								$Ax+By+Cz+D=0$.</dd>
+								<dt>What it measures</dt>
+								<dd>It's exactly a <strong>level set of the dot product</strong>. $\mathbf n\cdot\mathbf r=$
+								a constant — every point on the plane has the same projection along the normal.</dd>
+								<dt>Where it sits</dt>
+								<dd>The coefficients $(A,B,C)$ in the general form <strong>are the normal vector
+								itself</strong> — see $2x-3y+z=7$ and you should read off $(2,-3,1)$ immediately.
+								Distance from a point to the plane, $d=|\overrightarrow{AQ}\cdot\hat{\mathbf n}|$, is
+								another projection. Leads on to hyperplanes — the classification boundaries in
+								machine learning are exactly this.</dd>
+								<dt>When it fails</dt>
+								<dd class="zero">If $\mathbf n=\mathbf 0$ the equation degenerates — it's no longer a
+								plane. If $\mathbf n_1\times\mathbf n_2=\mathbf 0$, the two planes are parallel.</dd>
+							</dl>
+						</div>
+
+						<span class="image main"><img src="images/vec_plane.png" alt="The point-normal form of a plane" /></span>
+
+						<div class="concept" style="border-left-color:#ef6a5e">
+							<h3>Gaussian Elimination</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Reduce a system to echelon form, then back-substitute. Each equation is a plane;
+								solving the system is <strong>finding where they meet</strong>.</dd>
+								<dt>What it measures</dt>
+								<dd>What makes it legal in the first place: any linear combination of $\pi_1$ and
+								$\pi_2$ still passes through their original line of intersection (a pencil of
+								planes). So swapping in a combined equation loses no solutions — this is exactly the
+								same shear property from the determinant, "add a multiple of one row to another."</dd>
+								<dt>Where it sits</dt>
+								<dd>Rank = the number of nonzero rows in echelon form = the number of genuinely
+								independent equations. So <strong>the dimension of the solution = 3 − rank</strong> —
+								the rank–nullity theorem, in three dimensions.
+								Leads on to LU decomposition, the foundation under nearly all scientific computing.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">A final row of $0\ 0\ 0\mid 0$ means infinitely many solutions
+								(redundant information); $0\ 0\ 0\mid k$ means no solution (contradictory equations).
+								A determinant alone can only tell you "unique or not" — it can't distinguish these two.</dd>
+							</dl>
+						</div>
+
+						<span class="image main"><img src="images/vec_planes3.png" alt="Three planes intersecting: the three possible outcomes" /></span>
+
+						<hr class="major" />
+
+						<h2>Where they're spinning in the real world</h2>
+
+						<p>The four demos below all rotate, all take dragged sliders as live input. They aren't
+						four pictures of the same idea — they're the same formula doing four completely unrelated
+						jobs.</p>
+
+						<div class="demos">
+							<a class="demo" href="demo-em.html" target="_blank" rel="noopener">
+								<span class="tag">Physics</span>
+								<strong>Electric Flux and the Lorentz Force</strong>
+								<span class="d">Same angle θ: flux peaks on the left at exactly the angle where force
+								hits zero on the right. The middle bar shows $\cos^2\theta$ and $\sin^2\theta$ trading
+								off against each other.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-render.html" target="_blank" rel="noopener">
+								<span class="tag">Graphics</span>
+								<strong>Rendering a Triangle</strong>
+								<span class="d">The cross product decides which pixels get covered; the dot product
+								decides how bright they are. Rotate past 90° and the signed area goes negative — the
+								whole triangle gets backface culled.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-shadow.html" target="_blank" rel="noopener">
+								<span class="tag">Architecture</span>
+								<strong>The Sun Moves, the Shadow Falls</strong>
+								<span class="d">The ray-ground intersection has a dot product in its denominator; the
+								shadow's area uses the shoelace formula, where every term is a cross product. Real
+								astronomical sun position included, plus a working sundial.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-satellite.html" target="_blank" rel="noopener">
+								<span class="tag">Aerospace</span>
+								<strong>Ground Station Pointing at a Satellite</strong>
+								<span class="d">Two cross products build a local coordinate frame under your feet;
+								three dot products give elevation and azimuth. The formulas plug in live numbers,
+								written right on the canvas.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<p>Four completely unrelated things — an electric field crossing a plate, one pixel's
+						brightness, a building's noon shadow, how high to tilt an antenna — and underneath, it's the
+						same projection. <strong>The maths you learned has been running around you the whole time.</strong></p>
+
+						<hr class="major" />
+
+						<h2>One more: the plane's four sliders</h2>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-plane.html" target="_blank" rel="noopener">
+								<span class="tag">Interactive</span>
+								<strong>$Ax+By+Cz+D=0$, four sliders</strong>
+								<span class="d">Drag $A,B,C$ and the plane turns — because you're changing the normal
+								vector itself. Drag $D$ and the orientation doesn't move at all; the plane just
+								slides along its normal by $-D/|\mathbf n|$, and the gold dashed line measures
+								exactly that distance from the origin.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<p>Worth a look: the red and blue arrows on that plane are <strong>built from two cross
+						products</strong> — pick any direction perpendicular to $\mathbf n$, then take
+						$\mathbf n\times$ that direction to get the third. It's the same trick a ground station uses
+						to build east, north and zenith under its feet.</p>
+
+						<hr class="major" />
+
+						<h2>The page beneath the calculations</h2>
+
+						<p>Textbooks phrase every question in this chapter as "find some vector." Line them up side
+						by side and something the textbook never says out loud becomes visible:
+						<strong>they're all the same equation system — they just hand you different numbers of
+						conditions.</strong></p>
+
+						<div class="eqbox">
+							<span class="lbl">Same $A\mathbf x=\mathbf 0$, the number of conditions decides the shape of the answer</span><br />
+							1 equation → 2D solution space, a whole plane　→　asks you to "find two non-parallel ones"<br />
+							2 equations → 1D solution space, a line　→　the answer is $k(3,-1,1)$, $k\ne0$<br />
+							2 equations + a length condition → two points　→　the answer is exactly $\pm$ a pair
+						</div>
+
+						<p>Why does 12L Q17 ask for "any two," while 12N.1 Q11's answer is stubbornly "exactly two"?
+						Not the setter's preference — <strong>the dimension of the solution space decides it.</strong>
+						Likewise, "parallel," "collinear," "cross product is zero," "area is zero" are scattered
+						across four different sections of the textbook, and underneath they're the same fact: rank
+						collapse.</p>
+
+						<ul class="actions">
+							<li><a href="structure.html" class="button">The full question-by-question table<br /><span class="btn-en">The page beneath the calculations</span></a></li>
+						</ul>
+
+						<hr class="major" />
+
+						<h2>One step further</h2>
+
+						<p>And the rank, solution space, and linear dependence in that table are exactly the
+						entry point to the next section — once equations get written as matrices, each of those
+						words gets its own geometric shape.</p>
+
+						<ul class="actions">
+							<li><a href="matrix.html" class="button primary">Next: Matrices &amp; Transformations<br /><span class="btn-en">Rank &amp; four subspaces</span></a></li>
+						</ul>
+
+						<ul class="actions">
+							<li><a href="solar-tracker.html" class="button">Build · That First Twitch<br /><span class="btn-en">Homing &amp; S-Curve</span></a></li>
+						</ul>
+
+						<h3>Full notes</h3>
+						<p>What's on the page is the spine. The full version runs to about 18,000 characters with
+						fourteen embedded 3D figures, derivations, worked examples, and layered practice questions —
+						Markdown, opens or prints in any editor.</p>
+
+						<ul class="actions">
+							<li><a href="#" class="button primary" data-gated="../assets/data/vectors-notes.md">Download full notes<br /><span class="btn-en">Markdown</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

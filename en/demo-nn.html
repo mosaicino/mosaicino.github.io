@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Neural Network · Quadratic Fit Trainer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#16223a; --line:#2a3c5e; --text:#e6ecf5;
+    --muted:#93a4c0; --gold:#f7c579; --teal:#7ee0c8; --vio:#b388ff; --red:#ef6a5e;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif; }
+  header{ padding:12px 20px 4px; max-width:1100px; margin:0 auto; }
+  header h1{ margin:0; font-size:20px; }
+  header p{ margin:6px 0 0; color:var(--muted); font-size:13.5px; line-height:1.55; }
+  .grid{ max-width:1100px; margin:0 auto; padding:6px 16px 10px;
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 10px 6px; }
+  .panel h3{ margin:0 4px 6px; font-size:13px; font-weight:600; }
+  .panel h3 span{ color:var(--muted); font-weight:500; }
+  canvas{ display:block; width:100%; height:148px; background:#101a2c; border-radius:4px; }
+  #cvH{ height:188px; } #cvL{ height:148px; } #cvF{ height:160px; }
+  .wide{ grid-column:1/-1; }
+  .fn{
+    margin:8px 0 2px; background:#101a2c; border-left:3px solid #b388ff;
+    border-radius:3px; padding:6px 10px 5px; color:#c5d0e0; font-size:12px;
+  }
+  .fn .note{ color:#93a4c0; font-size:11.5px; margin-top:4px; }
+  .katex{ font-size:1.02em; color:#e6ecf5; }
+  .controls{ max-width:1100px; margin:0 auto 24px; padding:0 16px;
+    display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  .ctrl{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .ctrl input[type=range]{ width:130px; accent-color:var(--teal); }
+  button{ font:inherit; font-size:13px; padding:6px 12px; border-radius:5px;
+    border:1px solid var(--line); background:#1e2e4d; color:#fff; cursor:pointer; }
+  button:hover{ border-color:var(--gold); }
+  button.primary{ border-color:var(--teal); }
+  button.on{ border-color:var(--gold); }
+  #phase{ color:var(--gold); font-size:13px; min-width:10em; }
+  .codepane{
+    max-width:1100px; margin:0 auto 28px; padding:0 16px;
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+  }
+  .codebox{
+    background:#101a2c; border:1px solid #2a3c5e; border-radius:6px;
+    padding:8px 10px; min-height:0;
+  }
+  .codebox.on{ border-color:#7ee0c8; }
+  .codebox h4{ margin:0 0 6px; font-size:12px; color:#93a4c0; font-weight:600; }
+  .codebox.on h4{ color:#7ee0c8; }
+  .codebox pre{
+    margin:0; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:#c5d0e0; white-space:pre-wrap;
+  }
+  @media (max-width:760px){
+    .grid{ grid-template-columns:1fr; } .wide{ grid-column:auto; }
+    .codepane{ grid-template-columns:1fr; }
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:var(--panel,#16223a);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="neural.html">&larr; Neural Networks</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+<header>
+  <h1>Training a network to fit a quadratic curve</h1>
+  <p>61 inputs · 3 hidden units · forward pass gives a 61×3 activation matrix · error propagates back from the output · learning rate takes one step · watch the loss come down.</p>
+</header>
+
+<div class="grid">
+  <div class="panel">
+    <h3>① Inputs and targets <span>61 values of x, gold dots are the shape to learn</span></h3>
+    <canvas id="cvY" width="520" height="148"></canvas>
+    <div class="fn">\[ \{(x_i,y_i^{\star})\}_{i=1}^{61} \]
+      <div class="note">The inputs are the points along the x-axis; the gold dots are the supervision. The network hasn't entered yet</div></div>
+  </div>
+  <div class="panel">
+    <h3>② Forward pass: a 61×3 activation matrix <span>one row per sample, three columns for three neurons</span></h3>
+    <canvas id="cvH" width="520" height="188"></canvas>
+    <div class="fn">\[ H=\sigma(xw_1^{\top}+b_1)\in\mathbb{R}^{61\times 3} \]
+      <div class="note">Shading shifts as training goes. The columns are no longer the hand-picked \(1,x,x^2\) — they're bends the network learned on its own</div></div>
+  </div>
+  <div class="panel">
+    <h3>③ Forward / backward <span>solid lines compute rightward, dashed lines propagate back</span></h3>
+    <canvas id="cvN" width="520" height="148"></canvas>
+    <div class="fn">\[ \hat y=Hw_2+b_2,\quad
+      \delta_H=\delta_{\hat y}\,w_2^{\top}\odot\sigma'(z) \]
+      <div class="note">Backward propagation treats the output error as a probe and walks the same path in reverse</div></div>
+  </div>
+  <div class="panel">
+    <h3>④ Learning rate and convergence <span>every step is \(-\eta\nabla L\)</span></h3>
+    <canvas id="cvL" width="520" height="148"></canvas>
+    <div class="fn">\[ \theta\leftarrow\theta-\eta\,\partial L/\partial\theta,\quad
+      L=\tfrac1{61}\lVert\hat y-y^{\star}\rVert^{2} \]
+      <div class="note">\(\eta\) too large: the loss jumps around. Too small: it barely moves</div></div>
+  </div>
+  <div class="panel wide">
+    <h3>⑤ Current fit <span>teal is the network output · gold dots are the target</span></h3>
+    <canvas id="cvF" width="1040" height="160"></canvas>
+    <div class="fn">\[ \text{forward }x\to H\to\hat y
+      \;\longrightarrow\;
+      \text{backward }\delta_{\hat y}\to\delta_H\to\partial w
+      \;\longrightarrow\;
+      \text{update} \]
+      <div class="note">While playing, watch the texture in ② and the curve in ⑤ change together — that's learning happening</div></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl">Learning rate η <input id="eta" type="range" min="1" max="80" value="22"></div>
+  <div class="ctrl">Noise <input id="nz" type="range" min="0" max="40" value="6"></div>
+  <button class="primary" id="play">Play training</button>
+  <button id="step">One forward+backward step</button>
+  <button id="reset">Shuffle weights</button>
+  <span id="phase">waiting</span>
+</div>
+
+<div class="codepane">
+  <div class="codebox" id="boxF">
+    <h4>Forward</h4>
+<pre>z = x @ w1 + b1
+H = tanh(z)          # 61×3
+yhat = H @ w2 + b2</pre>
+  </div>
+  <div class="codebox" id="boxB">
+    <h4>Backward</h4>
+<pre>dY = 2*(yhat - y)/61
+dH = dY @ w2.T * (1-tanh(z)**2)
+dw = x.T @ dH</pre>
+  </div>
+  <div class="codebox" id="boxU">
+    <h4>Update</h4>
+<pre>w1 -= eta * dw1
+w2 -= eta * dw2
+# η is exactly that slider above</pre>
+  </div>
+</div>
+
+<script>
+const M = 61, Hn = 3;
+const xs = Float64Array.from({length:M}, (_,i) => -1 + 2*i/(M-1));
+const y0 = Float64Array.from(xs, x => 0.15 + 0.35*x + 0.85*x*x);
+let yStar = new Float64Array(M);
+let noise = new Float64Array(M);
+let w1 = new Float64Array(3), b1 = new Float64Array(3);
+let w2 = new Float64Array(3), b2 = 0;
+let Hact = new Float64Array(M*3), Z = new Float64Array(M*3);
+let yhat = new Float64Array(M);
+let lossHist = [];
+let playing = false, flash = 0;
+let phase = "idle";
+
+function seedNoise(){
+  for (let i=0;i<M;i++) noise[i] = ((Math.sin(i*12.9898)*43758.5453)%1+1)%1;
+}
+function makeTarget(){
+  const n = +document.getElementById("nz").value * 0.012;
+  for (let i=0;i<M;i++) yStar[i] = y0[i] + n*(noise[i]*2-1);
+}
+function randn(s){ return (Math.random()*2-1)*s; }
+function resetW(){
+  for (let j=0;j<3;j++){
+    w1[j] = randn(1.2);
+    b1[j] = randn(0.4);
+    w2[j] = randn(0.8);
+  }
+  b2 = randn(0.2);
+  lossHist = [];
+  phase = "idle";
+  forward();
+}
+
+function sigma(z){ return Math.tanh(z); }
+function dsigma(z){ const t=Math.tanh(z); return 1-t*t; }
+
+function forward(){
+  for (let i=0;i<M;i++){
+    const x=xs[i];
+    for (let j=0;j<3;j++){
+      const z = x*w1[j] + b1[j];
+      Z[i*3+j]=z;
+      Hact[i*3+j]=sigma(z);
+    }
+    let s=b2;
+    for (let j=0;j<3;j++) s += Hact[i*3+j]*w2[j];
+    yhat[i]=s;
+  }
+  let L=0;
+  for (let i=0;i<M;i++){ const r=yhat[i]-yStar[i]; L+=r*r; }
+  return L/M;
+}
+
+function backward(eta){
+  const dY = new Float64Array(M);
+  for (let i=0;i<M;i++) dY[i] = 2*(yhat[i]-yStar[i])/M;
+  const dw2 = new Float64Array(3);
+  let db2s = 0;
+  const dw1=new Float64Array(3), db1=new Float64Array(3);
+  for (let i=0;i<M;i++){
+    db2s += dY[i];
+    for (let j=0;j<3;j++){
+      dw2[j] += Hact[i*3+j]*dY[i];
+      const dH = dY[i]*w2[j];
+      const dZ = dH * dsigma(Z[i*3+j]);
+      dw1[j] += xs[i]*dZ;
+      db1[j] += dZ;
+    }
+  }
+  for (let j=0;j<3;j++){
+    w2[j] -= eta*dw2[j];
+    w1[j] -= eta*dw1[j];
+    b1[j] -= eta*db1[j];
+  }
+  b2 -= eta*db2s;
+}
+
+function step(){
+  makeTarget();
+  const L = forward();
+  lossHist.push(L);
+  if (lossHist.length>180) lossHist.shift();
+  const eta = +document.getElementById("eta").value * 0.012;
+  backward(eta);
+  forward();
+  flash = 1;
+  phase = ["forward","backward","update"][lossHist.length % 3];
+  render();
+}
+
+function hexA(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawFit(ctx, showLine){
+  const W=ctx.canvas.width, H=ctx.canvas.height;
+  ctx.fillStyle="#101a2c"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#2a3c5e";
+  ctx.beginPath(); ctx.moveTo(16,H/2); ctx.lineTo(W-10,H/2); ctx.stroke();
+  let mn=Infinity,mx=-Infinity;
+  for (const v of yStar){ if(v<mn)mn=v; if(v>mx)mx=v; }
+  for (const v of yhat){ if(v<mn)mn=v; if(v>mx)mx=v; }
+  const pad=(mx-mn)*0.22+0.05; mn-=pad; mx+=pad;
+  const X=i=>22+i/(M-1)*(W-36);
+  const Y=v=>H-16-(v-mn)/(mx-mn)*(H-32);
+  ctx.fillStyle="#f7c579";
+  for (let i=0;i<M;i++){ ctx.beginPath(); ctx.arc(X(i),Y(yStar[i]),2.3,0,7); ctx.fill(); }
+  if (showLine){
+    ctx.beginPath();
+    for (let i=0;i<M;i++){ const x=X(i),y=Y(yhat[i]); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.strokeStyle="#7ee0c8"; ctx.lineWidth=2.2; ctx.stroke();
+  }
+}
+
+function drawH(ctx){
+  const W=ctx.canvas.width, Hc=ctx.canvas.height;
+  ctx.fillStyle="#101a2c"; ctx.fillRect(0,0,W,Hc);
+  const left=44, top=14, right=16, bot=24;
+  const cw=(W-left-right)/3, rh=(Hc-top-bot)/M;
+  const cols=["#f7c579","#7ee0c8","#b388ff"];
+  for (let j=0;j<3;j++){
+    let mn=Infinity,mx=-Infinity;
+    for (let i=0;i<M;i++){ const v=Hact[i*3+j]; if(v<mn)mn=v; if(v>mx)mx=v; }
+    for (let i=0;i<M;i++){
+      const v=Hact[i*3+j];
+      const t=(v-mn)/(mx-mn+1e-6);
+      ctx.fillStyle=hexA(cols[j], 0.16+0.84*t);
+      ctx.fillRect(left+j*cw+2, top+i*rh, cw-4, Math.max(rh-0.25,0.7));
+    }
+  }
+  ctx.fillStyle="#93a4c0"; ctx.font="12px sans-serif"; ctx.textAlign="center";
+  ctx.fillText("h1", left+cw*0.5, Hc-8);
+  ctx.fillText("h2", left+cw*1.5, Hc-8);
+  ctx.fillText("h3", left+cw*2.5, Hc-8);
+  ctx.save(); ctx.translate(15,Hc/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("61 samples",0,0); ctx.restore();
+}
+
+function drawNet(ctx){
+  const W=ctx.canvas.width, H=ctx.canvas.height;
+  ctx.fillStyle="#101a2c"; ctx.fillRect(0,0,W,H);
+  const xIn=64, xHid=W*0.48, xOut=W-64;
+  const ys=[H*0.22,H*0.5,H*0.78];
+  const cols=["#f7c579","#7ee0c8","#b388ff"];
+  const back = phase==="backward";
+  ys.forEach((y,j)=>{
+    const a = 0.35+0.65*Math.min(1, Math.abs(w1[j]));
+    ctx.lineWidth = 1.2+4*Math.min(1,Math.abs(w1[j]));
+    ctx.strokeStyle = hexA(cols[j], a);
+    ctx.beginPath(); ctx.moveTo(xIn+16,H/2); ctx.lineTo(xHid-14,y); ctx.stroke();
+    ctx.lineWidth = 1.2+4*Math.min(1,Math.abs(w2[j]));
+    ctx.beginPath(); ctx.moveTo(xHid+14,y); ctx.lineTo(xOut-16,H/2); ctx.stroke();
+    if (back){
+      ctx.setLineDash([4,4]); ctx.strokeStyle="rgba(239,106,94,0.85)"; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(xOut-16,H/2); ctx.lineTo(xHid+14,y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xHid-14,y); ctx.lineTo(xIn+16,H/2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle=cols[j];
+    ctx.beginPath(); ctx.arc(xHid,y,11,0,7); ctx.fill();
+  });
+  ctx.fillStyle="#f7c579"; ctx.beginPath(); ctx.arc(xIn,H/2,14,0,7); ctx.fill();
+  ctx.fillStyle="#7ee0c8"; ctx.beginPath(); ctx.arc(xOut,H/2,14,0,7); ctx.fill();
+  ctx.fillStyle="#0b1220"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("x", xIn, H/2);
+  ctx.fillText("ŷ", xOut, H/2);
+  if (flash>0){
+    ctx.strokeStyle=`rgba(247,197,121,${flash})`;
+    ctx.lineWidth=2; ctx.beginPath(); ctx.arc(xOut,H/2,18,0,7); ctx.stroke();
+  }
+}
+
+function drawLoss(ctx){
+  const W=ctx.canvas.width, H=ctx.canvas.height;
+  ctx.fillStyle="#101a2c"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#2a3c5e";
+  ctx.beginPath(); ctx.moveTo(28,12); ctx.lineTo(28,H-16); ctx.lineTo(W-10,H-16); ctx.stroke();
+  if (lossHist.length<2) return;
+  let mx=1e-9; for (const v of lossHist) mx=Math.max(mx,v);
+  ctx.beginPath();
+  for (let i=0;i<lossHist.length;i++){
+    const x=28+i/Math.max(lossHist.length-1,1)*(W-44);
+    const y=H-16-(lossHist[i]/mx)*(H-34);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle="#7ee0c8"; ctx.lineWidth=2; ctx.stroke();
+}
+
+function render(){
+  drawFit(document.getElementById("cvY").getContext("2d"), false);
+  drawH(document.getElementById("cvH").getContext("2d"));
+  drawNet(document.getElementById("cvN").getContext("2d"));
+  drawLoss(document.getElementById("cvL").getContext("2d"));
+  drawFit(document.getElementById("cvF").getContext("2d"), true);
+  const L = lossHist.length? lossHist[lossHist.length-1] : forward();
+  document.getElementById("phase").textContent =
+    (playing?"training · ":"") + lossHist.length + " steps taken";
+  const on = {forward:"boxF", backward:"boxB", update:"boxU"}[phase];
+  ["boxF","boxB","boxU"].forEach(id=>{
+    document.getElementById(id).classList.toggle("on", id===on);
+  });
+}
+
+document.getElementById("nz").oninput = ()=>{ makeTarget(); forward(); render(); };
+document.getElementById("eta").oninput = render;
+document.getElementById("step").onclick = ()=>{ playing=false; step(); };
+document.getElementById("reset").onclick = ()=>{ playing=false; resetW(); render(); };
+document.getElementById("play").onclick = function(){
+  playing=!playing;
+  this.textContent = playing? "Pause":"Play training";
+  this.classList.toggle("on", playing);
+};
+
+seedNoise(); makeTarget(); resetW(); render();
+
+function tick(){
+  if (playing){
+    step();
+    if (lossHist.length>8 && lossHist[lossHist.length-1]<2e-4) playing=false;
+  }
+  if (flash>0){ flash=Math.max(0,flash-0.06); render(); }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}]});"></script>
+</body>
+</html>

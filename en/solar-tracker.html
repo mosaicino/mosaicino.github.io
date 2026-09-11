@@ -1,0 +1,424 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>That First Twitch · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="Why a servo lurches the moment you power it up, and how position feedback plus an S-curve makes it wake up quietly. Six boundary conditions, one linear system." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+			.langswitch { font-size: 0.9em; }
+		</style>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+					<li><a href="../solar-tracker.html" class="langswitch">中文版 &nbsp;Chinese</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>That first twitch</h1>
+							<p>Servo Homing &amp; S-Curve Motion<br />
+							This isn't really a page about tracking the sun. It's about two specific problems:
+							<strong>stopping the servo from lurching at power-on</strong>, and
+							<strong>getting it to move smoothly once it does.</strong></p>
+						</header>
+
+						<span class="image main"><img src="images/pic07M.jpg" alt="The ESP32 two-axis pan-tilt mount" /></span>
+
+						<h2>Problem one · the power-on lurch</h2>
+
+						<p>Plug it in and the mount jerks. The reason isn't complicated: a servo is open loop —
+						<em>it doesn't know where it currently is</em> — but the instant your code calls
+						<code>attach()</code>, the library starts putting out a pulse width and the servo drives
+						<strong>at full speed</strong> toward whatever angle that corresponds to. Whether it started
+						at 78° or at 170° is not something it cares about. It just goes.</p>
+
+						<p>That jerk is unkind to plastic gears, to the frame, and to whatever panel is bolted on top.
+						Worse, the direction changes every time, because it depends on where the thing happened to
+						stop when you last cut power.</p>
+
+						<p>I tried the obvious workarounds first: make the first command land near home, add a delay
+						after boot, step across in small increments. <strong>All of them are really just guessing
+						the starting point</strong> — guess right and it's smooth, guess wrong and it lurches anyway.</p>
+
+						<span class="image main"><img src="images/fig1_homing.png" alt="Power-on timing: lurch versus smooth" /></span>
+
+						<h3>The fix: ask it where it is</h3>
+
+						<p>That feedback potentiometer inside the servo has known the true shaft angle the whole time.
+						Nobody had asked it. Bring the center tap out to an ADC
+						(<a href="servo-calib.html">opening it up, soldering, and calibrating is the previous page</a>)
+						and the startup sequence can become this — <strong>and the order is everything</strong>:</p>
+
+<pre><code>// ① Read BEFORE attach. The servo isn't driven yet, the shaft is free,
+//    so the potentiometer reads exactly where it came to rest last time.
+int rawAZ = readAverage(POT_AZ, 40);
+float azStart = constrain(azRawToDeg(rawAZ), AZ_MIN, AZ_MAX);
+
+// ② Attach, then immediately write that measured angle.
+//    The first command the servo ever receives is "stay where you are" — so it doesn't move.
+svAZ.attach(PIN_AZ, US_MIN, US_MAX);
+svAZ.write((int)roundf(azStart));
+azCmd = azStart;
+
+// ③ Now that the starting point is known, "move smoothly" finally means something.
+smoothMoveTo(AZ_HOME, EL_HOME, 1600);</code></pre>
+
+						<blockquote>This is what homing actually is. Everything I tried before was just guessing
+						the starting point.</blockquote>
+
+						<p>Worth saying plainly: after all the taking apart, soldering and calibrating, the biggest
+						payoff <em>wasn't</em> knowing the angle. It was those three lines being in that order.
+						Once the true starting point is known, the word "smooth" finally has something to refer to.</p>
+
+						<hr class="major" />
+
+						<h2>Problem two · what counts as smooth</h2>
+
+						<p>Start at 78°, target 120°. How should it spend the 1.6 seconds in between?</p>
+
+						<p>The obvious answer is linear interpolation — same angular step every 20 ms. But that puts
+						<strong>a discontinuity at each end</strong>: velocity jumps from zero to some value, then drops
+						back to zero on arrival. Acceleration is infinite at both instants, which you feel as a snap
+						at the start and a thud at the finish.</p>
+
+						<p>So what's wanted is a curve where the endpoints are right, <strong>the velocity is zero at
+						both ends</strong>, and <strong>the acceleration is zero at both ends too</strong>. Six requirements.</p>
+
+						<h3>Six conditions, six coefficients</h3>
+
+						<p>Six conditions pin down a fifth-degree polynomial exactly. Write
+						<em>s</em>(<em>t</em>) = <em>a</em><sub>0</sub> + <em>a</em><sub>1</sub><em>t</em> + … + <em>a</em><sub>5</sub><em>t</em><sup>5</sup>
+						and turn the requirements into equations:</p>
+
+						<div class="eqbox">
+							<span class="lbl">Three at the start (t = 0):</span><br />
+							s(0)  = a₀                                  = 0　→　a₀ = 0<br />
+							s'(0) = a₁                                  = 0　→　a₁ = 0<br />
+							s''(0)= 2a₂                                 = 0　→　a₂ = 0<br />
+							<br />
+							<span class="lbl">Three at the end (t = 1). The first three are already gone, leaving a₃ a₄ a₅:</span><br />
+							s(1)  =  a₃ +  a₄ +  a₅ = 1<br />
+							s'(1) = 3a₃ + 4a₄ + 5a₅ = 0<br />
+							s''(1)= 6a₃ +12a₄ +20a₅ = 0
+						</div>
+
+						<p>What's left is a 3×3 linear system. Whether it has a unique solution comes down to
+						the determinant:</p>
+
+						<div class="eqbox">
+							|&nbsp;1&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;1&nbsp;|<br />
+							|&nbsp;3&nbsp;&nbsp;&nbsp;4&nbsp;&nbsp;&nbsp;5&nbsp;|&nbsp;&nbsp;=&nbsp;&nbsp;<strong>2 ≠ 0</strong>　→　three planes meeting at one point: unique solution<br />
+							|&nbsp;6&nbsp;&nbsp;12&nbsp;&nbsp;20&nbsp;|
+						</div>
+
+						<p>Eliminate and you get <em>a</em><sub>3</sub> = 10, <em>a</em><sub>4</sub> = −15,
+						<em>a</em><sub>5</sub> = 6, so</p>
+
+						<div class="eqbox" style="text-align:center;font-size:1.15em;border-left-color:#3ec8d8">
+							s(t) = 6t⁵ − 15t⁴ + 10t³
+						</div>
+
+						<p>Those three numbers — 6, −15, 10 — aren't tuned and aren't fitted.
+						<strong>They're the one answer those six conditions allow.</strong>
+						If you want a different kind of smoothness you have to change the conditions;
+						you can't just nudge the coefficients.<br />
+						Determinants and elimination in full → <a href="vectors.html">Vectors &amp; Space</a></p>
+
+						<span class="image main"><img src="images/fig2_scurve.png" alt="Position, velocity and acceleration of the S-curve" /></span>
+
+						<p>Left to right, those three plots <em>are</em> the six conditions: position takes a value at each
+						end, velocity is zero at both ends, acceleration is zero at both ends. The bell shape in the
+						middle is the velocity — slow start, quick middle, gentle finish, which is exactly how you'd
+						open a valve by hand.<br />
+						What derivatives and second derivatives mean → <a href="calculus.html">Change &amp; Gradients</a></p>
+
+<pre><code>float sCurve(float t) { return t * t * t * (t * (t * 6.f - 15.f) + 10.f); }
+
+void smoothMoveTo(float azTgt, float elTgt, int ms) {
+  float a0 = azCmd, e0 = elCmd;          // start point: measured, not guessed
+  int steps = ms / 20;
+  for (int i = 0; i &lt;= steps; i++) {
+    float s = sCurve((float)i / steps);
+    azCmd = a0 + (azTgt - a0) * s;
+    elCmd = e0 + (elTgt - e0) * s;
+    applyServos();
+    samplePosition();                     // log whether it's actually keeping up
+    delay(20);
+  }
+}</code></pre>
+
+						<p>Writing it as <code>t*t*t*(t*(t*6-15)+10)</code> is Horner's method — two multiplications
+						instead of a fifth power. Inside a loop that runs every 20 ms, that's worth doing.</p>
+
+						<hr class="major" />
+
+						<h2>Interpolation and fitting, on one page</h2>
+
+						<p>This page solves for coefficients twice. The two look alike and are not the same thing.</p>
+
+						<span class="image main"><img src="images/fig3_interp_vs_fit.png" alt="Three-point piecewise linear versus polynomial fit" /></span>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th></th><th>S-curve</th><th>Potentiometer calibration</th></tr>
+								</thead>
+								<tbody>
+									<tr><td>Given</td><td>6 boundary conditions</td><td>61 measured points</td></tr>
+									<tr><td>Unknown</td><td>6 coefficients</td><td>3 coefficients</td></tr>
+									<tr><td>System</td><td>exactly determined</td><td>overdetermined</td></tr>
+									<tr><td>Method</td><td><strong>interpolation</strong>: satisfy every condition exactly</td><td><strong>fitting</strong>: minimise total error</td></tr>
+									<tr><td>Result</td><td>unique solution</td><td>least-squares solution</td></tr>
+								</tbody>
+							</table>
+						</div>
+
+						<p>The calibration in the firmware uses a <strong>three-point piecewise line</strong> —
+						pick 60°, 120° and 180°, interpolate linearly across the two halves. That's interpolation too:
+						it passes <em>exactly</em> through those three points (the diamonds on the left plot), and pays
+						for it by faking everything in between with straight lines. I chose it because extrapolating
+						from just two endpoints was off by 4° in the middle, and one extra point in the centre fixed that.</p>
+
+						<p>Going back and checking it against all 61 sweep points gives this:</p>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th>Method</th><th>AZ RMS</th><th>Note</th></tr>
+								</thead>
+								<tbody>
+									<tr><td>Three-point piecewise (as-is)</td><td>2.90°</td><td>includes a −2.61° systematic offset</td></tr>
+									<tr><td>Three-point piecewise (offset removed)</td><td>1.26°</td><td>error from the shape itself</td></tr>
+									<tr><td>3rd-order polynomial fit</td><td>0.62°</td><td>shape error halved</td></tr>
+								</tbody>
+							</table>
+						</div>
+
+						<p>So switching to a polynomial really would halve the shape error. But the thing that jumps out
+						of the right-hand plot is the red dashed line: <strong>the two calibrations are 2.61° apart
+						overall</strong> — bigger than any modelling error. The three-point calibration was done on
+						2026-08-24, the sweep was a separate session, and in between things got taken apart and the
+						supply changed. <em>One teardown and reassembly wipes out everything a better model would have won.</em></p>
+
+						<blockquote>The previous page ended with mechanical backlash at 2.07° dwarfing a 0.62° fit residual.<br />
+						This page adds another: calibration drift at 2.61°, dwarfing it just the same.<br />
+						<strong>What limits the accuracy is never the maths. It's the physical thing.</strong></blockquote>
+
+						<p>Which puts "replace the piecewise line with a polynomial" <em>below</em> "recalibrate" and
+						"kill the backlash" on the list. Knowing which one to fix first is worth more than knowing how to fix it.<br />
+						Least squares in full → <a href="fitting.html">Fitting &amp; Least Squares</a></p>
+
+						<hr class="major" />
+
+						<h2>What's in the build</h2>
+
+						<p>A two-axis pan-tilt mount: two MG90S servos, four LDRs for quadrant differencing,
+						an SSD1306 for status, all on an ACEBOTT ESP32 Max V1.0.</p>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th>Function</th><th>Pin</th><th>Note</th></tr>
+								</thead>
+								<tbody>
+									<tr><td>AZ / EL servo signal</td><td>GPIO 5 / 16</td><td>500–2400 µs</td></tr>
+									<tr><td>AZ / EL potentiometer tap</td><td>GPIO 32 / 33</td><td>ADC1</td></tr>
+									<tr><td>LDR LU / RU / LD / RD</td><td>GPIO 36 / 39 / 34 / 35</td><td>input-only pins, perfect for sensors</td></tr>
+									<tr><td>OLED</td><td>GPIO 21 / 22</td><td>I²C</td></tr>
+								</tbody>
+							</table>
+						</div>
+
+						<p>That pin assignment was <strong>forced, not chosen</strong>. Early on, with only four LDRs,
+						they sat comfortably on 32/33/34/35. Adding position feedback needed two more ADC channels,
+						and with ADC2 unusable once WiFi is on, everything has to live on ADC1 — which is only
+						GPIO 32–39. So 32/33 went to the potentiometer taps (those pins can do input or output,
+						so they're the flexible ones) and the LDRs moved to 36/39, which are
+						<strong>input-only</strong> and can't be used for much else anyway. Nothing wasted.</p>
+
+						<p>The three numbers I end up watching most are on the display:</p>
+
+<pre><code>AZ 120.0>118.3 -1.7
+   cmd    actual  error ← steady-state error: deadband plus gear slop</code></pre>
+
+						<p>Having that middle column is the first time I could <em>see</em> the gap between what I asked
+						for and what happened. Before that, where the mount was pointing was a matter of squinting at it.</p>
+
+						<hr class="major" />
+
+						<h2>Files</h2>
+						<ul class="actions">
+							<li><a href="#" class="button" data-gated="../assets/data/tracker_v4.ino">Tracker firmware v4<br /><span class="btn-en">tracker_v4.ino</span></a></li>
+							<li><a href="#" class="button" data-gated="../assets/data/ldr_test.ino">LDR test sketch<br /><span class="btn-en">ldr_test.ino</span></a></li>
+							<li><a href="servo-calib.html" class="button primary">Back to: Servo Calibration<br /><span class="btn-en">Where the numbers came from</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

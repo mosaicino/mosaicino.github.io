@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rows, Columns, and Dimensional Collapse</title>
+<style>
+  :root{
+    --ink:#0a0f14; --panel:#101821; --rule:#20303d;
+    --text:#d7e3ec; --muted:#6c8497;
+    --a1:#4d9de0; --a2:#c47bd8; --a3:#4fc3a1;
+    --ax:#f0a92c; --xv:#f4626d; --bv:#7fe3ff; --warn:#ff8a5c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:"Iowan Old Style","Songti SC",Georgia,"Times New Roman",serif;
+    overflow:hidden;-webkit-text-size-adjust:100%;
+  }
+  canvas{display:block;touch-action:none;position:absolute;inset:0}
+
+  header{position:absolute;top:16px;left:20px;pointer-events:none;max-width:23em}
+  header h1{margin:0;font-size:18px;font-weight:600}
+  header p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.55}
+
+  #panel{
+    position:absolute;right:16px;top:16px;width:302px;max-height:calc(100% - 32px);
+    background:var(--panel);border:1px solid var(--rule);border-radius:14px;
+    padding:16px 18px;overflow-y:auto;
+  }
+  h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--muted)}
+  h2:not(:first-child){margin-top:20px}
+
+  .mat{display:flex;font-family:ui-monospace,Menlo,monospace}
+  .bracket{width:8px;border:1.5px solid var(--muted);border-right:none;border-radius:3px 0 0 3px}
+  .bracket.r{border-left:none;border-right:1.5px solid var(--muted);border-radius:0 3px 3px 0}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);flex:1;padding:6px 4px;gap:3px 0}
+  .cols span{
+    text-align:center;font-size:14px;padding:2px 0;font-variant-numeric:tabular-nums;
+    border-radius:3px;transition:background .12s;
+  }
+  .cols span.live{background:rgba(240,169,44,.16)}
+  .colhead{display:grid;grid-template-columns:repeat(3,1fr);margin:6px 8px 0;font-size:12px;text-align:center}
+
+  .seg{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .seg + .seg{margin-top:6px}
+  .seg button{
+    flex:1;background:none;border:none;border-right:1px solid var(--rule);
+    color:var(--muted);font:inherit;font-size:13px;padding:8px 0;cursor:pointer;
+  }
+  .seg button:last-child{border-right:none}
+  .seg button[aria-pressed="true"]{background:#18242f;color:var(--text)}
+  .seg button:focus-visible{outline:2px solid var(--ax);outline-offset:-2px}
+
+  .row{display:flex;align-items:center;gap:9px;margin:11px 0}
+  .row label{width:24px;font-size:13px;flex:none;color:var(--muted)}
+  .row output{
+    width:52px;text-align:right;flex:none;
+    font-family:ui-monospace,Menlo,monospace;font-size:14px;font-variant-numeric:tabular-nums;
+  }
+  input[type=range]{flex:1;min-width:0;height:22px;accent-color:var(--ax)}
+  input[type=range].xs{accent-color:var(--muted)}
+  input[type=range]:focus-visible{outline:2px solid var(--ax);outline-offset:3px}
+
+  .bin{display:flex;gap:6px}
+  .bin input{
+    flex:1;min-width:0;background:#0a1219;border:1px solid var(--rule);color:var(--bv);
+    border-radius:7px;padding:7px 2px;text-align:center;
+    font-family:ui-monospace,Menlo,monospace;font-size:14px;-moz-appearance:textfield;
+  }
+  .bin input::-webkit-outer-spin-button,.bin input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .bin input:focus{outline:none;border-color:var(--bv)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:6px 0;border-bottom:1px solid var(--rule)}
+  td:last-child{text-align:right;font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  tr.sum td{color:var(--ax);font-weight:600}
+
+  label.tog{display:flex;align-items:center;gap:9px;font-size:14px;padding:5px 0;cursor:pointer}
+  label.tog.off{opacity:.4;cursor:default}
+  input[type=checkbox]{accent-color:var(--ax);width:15px;height:15px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+
+  .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  button.ghost{
+    background:none;border:1px solid var(--rule);color:var(--muted);
+    font:inherit;font-size:13px;border-radius:8px;padding:6px 11px;cursor:pointer;
+  }
+  button.ghost:hover{color:var(--text);border-color:var(--muted)}
+  button.ghost:focus-visible{outline:2px solid var(--ax);outline-offset:2px}
+
+  .status{font-size:12.5px;line-height:1.6;color:var(--muted);margin:9px 0 0}
+  .status b{color:var(--text);font-weight:600}
+  .status.flat b{color:var(--warn)}
+
+  #toggle{display:none}
+  @media (max-width:780px){
+    header{max-width:none;right:20px}
+    header p{display:none}
+    #panel{left:10px;right:10px;top:auto;bottom:10px;width:auto;max-height:58vh;padding:14px 16px}
+    #panel[hidden]{display:none}
+    #toggle{
+      display:block;position:absolute;right:14px;bottom:14px;
+      background:var(--panel);border:1px solid var(--rule);color:var(--text);
+      font:inherit;font-size:14px;border-radius:999px;padding:9px 18px;cursor:pointer;
+    }
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid var(--rule,var(--line,#20303d));
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--ink,#0a0f14);position:relative;z-index:50;
+}
+.backbar a{color:var(--muted,#6c8497);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#d7e3ec);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="matrix.html">&larr; Matrices &amp; Transformations</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<canvas id="stage"></canvas>
+
+<header>
+  <h1>Row rank equals column rank &mdash; squeeze from either side and both collapse</h1>
+  <p>Pick a row or a column and drag it. The moment it becomes a combination of the other two rows (columns), det A hits zero, all three column vectors become coplanar, and the column space collapses onto a flat plane.</p>
+</header>
+
+<button id="toggle">Parameters</button>
+
+<aside id="panel">
+  <h2>Matrix A</h2>
+  <div class="mat">
+    <div class="bracket"></div>
+    <div class="cols" id="matA"></div>
+    <div class="bracket r"></div>
+  </div>
+  <div class="colhead">
+    <span style="color:var(--a1)">a₁</span>
+    <span style="color:var(--a2)">a₂</span>
+    <span style="color:var(--a3)">a₃</span>
+  </div>
+
+  <h2 id="editTitle">Adjustable</h2>
+  <div class="seg" id="segKind">
+    <button data-k="row">Row</button>
+    <button data-k="col">Column</button>
+  </div>
+  <div class="seg" id="segIdx">
+    <button data-i="0">1</button>
+    <button data-i="1">2</button>
+    <button data-i="2">3</button>
+  </div>
+  <div class="row"><label id="lb0"></label><input type="range" id="k0"><output id="v0"></output></div>
+  <div class="row"><label id="lb1"></label><input type="range" id="k1"><output id="v1"></output></div>
+  <div class="row"><label id="lb2"></label><input type="range" id="k2"><output id="v2"></output></div>
+  <div class="btns">
+    <button class="ghost" id="flat">Flatten (det &rarr; 0)</button>
+    <button class="ghost" id="resetA">Reset A</button>
+  </div>
+  <p class="status" id="rankMsg"></p>
+
+  <h2>Vector x</h2>
+  <div class="row"><label for="s0">x₁</label><input type="range" class="xs" id="s0"><output id="o0"></output></div>
+  <div class="row"><label for="s1">x₂</label><input type="range" class="xs" id="s1"><output id="o1"></output></div>
+  <div class="row"><label for="s2">x₃</label><input type="range" class="xs" id="s2"><output id="o2"></output></div>
+  <div class="btns">
+    <button class="ghost" id="reset">Back to (1,1,1)</button>
+    <button class="ghost" id="norm">Components sum to 1</button>
+  </div>
+
+  <h2>Target point b</h2>
+  <div class="bin">
+    <input type="number" step="0.1" id="b0">
+    <input type="number" step="0.1" id="b1">
+    <input type="number" step="0.1" id="b2">
+  </div>
+  <div class="btns">
+    <button class="ghost" id="solve">Solve Ax = b</button>
+    <button class="ghost" id="bFromAx">b &larr; current Ax</button>
+  </div>
+  <p class="status" id="solveMsg">Not solved yet.</p>
+
+  <h2>Column space demo</h2>
+  <div class="row"><label for="ns">Count</label><input type="range" class="xs" id="ns"><output id="nsv"></output></div>
+  <div class="btns">
+    <button class="ghost" id="reroll">Re-scatter</button>
+    <button class="ghost" id="clearS">Clear</button>
+  </div>
+  <p class="status">Draw random x (each component between &minus;2 and 2), and plot each Ax as a thin line. Press <b>space</b> to add one at a time &mdash; samples stay on screen and only ever accumulate.</p>
+
+  <h2>Component vectors</h2>
+  <table>
+    <tr><td style="color:var(--a1)">x₁a₁</td><td id="c0"></td></tr>
+    <tr><td style="color:var(--a2)">x₂a₂</td><td id="c1"></td></tr>
+    <tr><td style="color:var(--a3)">x₃a₃</td><td id="c2"></td></tr>
+    <tr class="sum"><td>Ax</td><td id="cs"></td></tr>
+    <tr><td>x₁+x₂+x₃</td><td id="cq"></td></tr>
+    <tr><td id="cdl">Volume</td><td id="cd"></td></tr>
+  </table>
+
+  <h2>Shape spanned by the columns</h2>
+  <div class="seg" id="seg">
+    <button data-m="none">None</button>
+    <button data-m="para">Parallelogram</button>
+    <button data-m="tri">Triangle</button>
+  </div>
+  <label class="tog" id="capRow"><input type="checkbox" id="tcap"><span class="swatch" style="background:var(--ax)"></span>add cap face a₁a₂a₃</label>
+
+  <h2>Display</h2>
+  <label class="tog"><input type="checkbox" id="t1" checked><span class="swatch" style="background:var(--a2)"></span>column vectors</label>
+  <label class="tog"><input type="checkbox" id="t2" checked><span class="swatch" style="background:var(--ax)"></span>component chain</label>
+  <label class="tog"><input type="checkbox" id="t7" checked><span class="swatch" style="background:var(--bv)"></span>column space</label>
+  <label class="tog"><input type="checkbox" id="t6" checked><span class="swatch" style="background:var(--warn)"></span>target point b</label>
+  <label class="tog"><input type="checkbox" id="t3"><span class="swatch" style="background:var(--xv)"></span>original vector x</label>
+  <label class="tog"><input type="checkbox" id="t4"><span class="swatch" style="background:var(--muted)"></span>auto-rotate</label>
+</aside>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== vector helpers ===== */
+const add = (a,b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]];
+const sub = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const scl = (a,k) => [a[0]*k, a[1]*k, a[2]*k];
+const dot = (a,b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const len = a => Math.hypot(a[0],a[1],a[2]);
+const cross = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const unit = a => { const n = len(a) || 1; return scl(a, 1/n); };
+const mix = (a,b,t) => a.map((v,i) => v + (b[i]-v)*t);
+
+/* ===== matrix stored row-major ===== */
+const M0 = [
+  [1.0, 0.5, 0.2],
+  [0.3, 0.8, 0.4],
+  [0.1, 0.6, 0.9]
+];
+const S = {
+  M: M0.map(r => [...r]),
+  edit: {kind: "row", idx: 0},
+  x: [1, 1, 1],
+  b: [1.7, 1.5, 1.6],
+  az: 0.78, el: 0.38, zoom: 1,
+  faceMode: "tri", cap: false,
+  nSamples: 0,
+  show: {cols:true, chain:true, cspace:true, bcol:true, xv:false, spin:false}
+};
+
+/* pool of random x samples, only grows, slider controls how many show */
+const POOL = [];
+const randX = () => [0,1,2].map(() => (Math.random()*2 - 1) * 2);
+function ensurePool(n){ while (POOL.length < n) POOL.push(randX()); }
+const rowOf = i => [...S.M[i]];
+const colOf = j => [S.M[0][j], S.M[1][j], S.M[2][j]];
+const cols = () => [colOf(0), colOf(1), colOf(2)];
+const rows = () => [rowOf(0), rowOf(1), rowOf(2)];
+
+const CC = ["#4d9de0", "#c47bd8", "#4fc3a1"];
+const AXC = "#f0a92c", XC = "#f4626d", BC = "#7fe3ff";
+const FLAT_TOL = 0.02;
+const detM = () => {
+  const M = S.M;
+  return M[0][0]*(M[1][1]*M[2][2] - M[1][2]*M[2][1])
+       - M[0][1]*(M[1][0]*M[2][2] - M[1][2]*M[2][0])
+       + M[0][2]*(M[1][0]*M[2][1] - M[1][1]*M[2][0]);
+};
+
+/* project v onto the subspace spanned by a set of vectors */
+function projectOnto(v, spanVecs){
+  const B = [];
+  for (const s of spanVecs){
+    let u = [...s];
+    for (const e of B) u = sub(u, scl(e, dot(u, e)));
+    if (len(u) > 1e-9) B.push(unit(u));
+  }
+  let p = [0,0,0];
+  for (const e of B) p = add(p, scl(e, dot(v, e)));
+  return p;
+}
+/* orthogonal basis for the column space */
+function colBasis(){
+  const C = cols();
+  const scale = Math.max(...C.map(len), 1e-9);
+  const B = [];
+  for (const c of C){
+    let u = [...c];
+    for (const e of B) u = sub(u, scl(e, dot(u, e)));
+    if (len(u) > 1e-3 * scale) B.push(unit(u));
+  }
+  return B;
+}
+
+/* ===== least squares ===== */
+function leastSquares(C, b){
+  const G = [0,1,2].map(i => [0,1,2].map(j => dot(C[i], C[j])).concat(dot(C[i], b)));
+  const tr = G[0][0] + G[1][1] + G[2][2];
+  const lam = 1e-9 * tr + 1e-14;
+  for (let i = 0; i < 3; i++) G[i][i] += lam;
+  for (let c = 0; c < 3; c++){
+    let p = c;
+    for (let r = c+1; r < 3; r++) if (Math.abs(G[r][c]) > Math.abs(G[p][c])) p = r;
+    [G[c], G[p]] = [G[p], G[c]];
+    if (Math.abs(G[c][c]) < 1e-14) continue;
+    for (let r = 0; r < 3; r++){
+      if (r === c) continue;
+      const f = G[r][c] / G[c][c];
+      for (let k = c; k < 4; k++) G[r][k] -= f * G[c][k];
+    }
+  }
+  const y = [0,1,2].map(i => Math.abs(G[i][i]) < 1e-14 ? 0 : G[i][3] / G[i][i]);
+  const Ay = add(add(scl(C[0], y[0]), scl(C[1], y[1])), scl(C[2], y[2]));
+  return {y, residual: len(sub(Ay, b))};
+}
+
+/* ===== camera ===== */
+const cv = document.getElementById("stage");
+const ctx = cv.getContext("2d");
+let W=0, H=0, focal=0, eye=[0,0,0], fw=[0,0,1], rt=[1,0,0], up=[0,1,0], dist=6;
+const NEAR = 0.08;
+
+function setCamera(){
+  const ce = Math.cos(S.el), se = Math.sin(S.el);
+  eye = [dist*ce*Math.cos(S.az), dist*ce*Math.sin(S.az), dist*se];
+  fw = unit(sub([0,0,0], eye));
+  rt = unit(cross(fw, [0,0,1]));
+  up = cross(rt, fw);
+  focal = (H/2) / Math.tan(23 * Math.PI/180) * S.zoom;
+}
+const toCam = p => { const d = sub(p, eye); return [dot(d,rt), dot(d,up), dot(d,fw)]; };
+const toScr = c => [W/2 + focal*c[0]/c[2], H/2 - focal*c[1]/c[2]];
+const depth = p => toCam(p)[2];
+
+function seg(p, q){
+  let a = toCam(p), b = toCam(q);
+  if (a[2] < NEAR && b[2] < NEAR) return null;
+  if (a[2] < NEAR) a = mix(a, b, (NEAR - a[2]) / (b[2] - a[2]));
+  else if (b[2] < NEAR) b = mix(b, a, (NEAR - b[2]) / (a[2] - b[2]));
+  return [toScr(a), toScr(b)];
+}
+
+/* ===== drawing ===== */
+function line(p, q, color, w, dash){
+  const s = seg(p, q); if (!s) return;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = w;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]); ctx.lineTo(s[1][0], s[1][1]); ctx.stroke();
+  ctx.restore();
+}
+function clipNear(cam){
+  const out = [];
+  for (let i = 0; i < cam.length; i++){
+    const a = cam[i], b = cam[(i+1) % cam.length];
+    const ain = a[2] >= NEAR, bin = b[2] >= NEAR;
+    if (ain) out.push(a);
+    if (ain !== bin) out.push(mix(a, b, (NEAR - a[2]) / (b[2] - a[2])));
+  }
+  return out;
+}
+function poly(pts, fill, stroke){
+  const c = clipNear(pts.map(toCam));
+  if (c.length < 3) return;
+  const s = c.map(toScr);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]);
+  for (let i = 1; i < s.length; i++) ctx.lineTo(s[i][0], s[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke(); }
+  ctx.restore();
+}
+const hexv = h => [1,3,5].map(i => parseInt(h.substr(i,2), 16));
+const blend = (h1, h2, al) => {
+  const a = hexv(h1), b = hexv(h2);
+  return `rgba(${(a[0]+b[0])>>1},${(a[1]+b[1])>>1},${(a[2]+b[2])>>1},${al})`;
+};
+function arrow(from, to, color, w, label, size){
+  const s = seg(from, to); if (!s) return;
+  const [o, t] = s;
+  let dx = t[0]-o[0], dy = t[1]-o[1];
+  const L = Math.hypot(dx, dy); if (L < 0.8) return;
+  dx /= L; dy /= L;
+  const head = Math.min(9 + w*2.2, L*0.36), half = head*0.44;
+  const bx = t[0] - dx*head, by = t[1] - dy*head;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(t[0], t[1]);
+  ctx.lineTo(bx - dy*half, by + dx*half);
+  ctx.lineTo(bx + dy*half, by - dx*half);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  if (label) tag(label, t[0] + dx*15, t[1] + dy*15, color, size || 14);
+}
+function marker(p, color, label){
+  const c = toCam(p); if (c[2] < NEAR) return;
+  const s = toScr(c);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.fillStyle = "rgba(10,15,20,.9)";
+  ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  if (label) tag(label, s[0] + 18, s[1] - 12, color, 13);
+}
+function tag(text, sx, sy, color, size){
+  ctx.save();
+  ctx.font = `600 ${size}px ui-monospace, Menlo, monospace`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const w = ctx.measureText(text).width + 11, h = size + 8;
+  ctx.fillStyle = "rgba(10,15,20,.8)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(sx - w/2, sy - h/2, w, h, 5);
+  else ctx.rect(sx - w/2, sy - h/2, w, h);
+  ctx.fill();
+  ctx.fillStyle = color; ctx.fillText(text, sx, sy);
+  ctx.restore();
+}
+const niceStep = r => {
+  const raw = r / 5, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+  return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p;
+};
+
+/* ===== render ===== */
+function draw(){
+  const C = cols(), x = S.x;
+  const parts = [scl(C[0], x[0]), scl(C[1], x[1]), scl(C[2], x[2])];
+  const node = [[0,0,0]];
+  for (let i = 0; i < 3; i++) node.push(add(node[i], parts[i]));
+  const Ax = node[3];
+  const D = detM();
+  const flat = Math.abs(D) < FLAT_TOL;
+
+  let reach = Math.max(len(Ax), 1);
+  for (const n of node) reach = Math.max(reach, len(n));
+  if (S.show.cols) for (const c of C) reach = Math.max(reach, len(c));
+  if (S.show.xv) reach = Math.max(reach, len(x));
+  if (S.show.bcol) reach = Math.max(reach, len(S.b));
+
+  // Ax for the random samples
+  ensurePool(S.nSamples);
+  const samples = [];
+  for (let i = 0; i < S.nSamples; i++){
+    const t = POOL[i];
+    const p = add(add(scl(C[0], t[0]), scl(C[1], t[1])), scl(C[2], t[2]));
+    samples.push(p);
+    reach = Math.max(reach, len(p));
+  }
+
+  const step = niceStep(reach * 1.3);
+  const R = Math.ceil(reach * 1.18 / step) * step;
+  dist = R * 3.5;
+  setCamera();
+  ctx.clearRect(0, 0, W, H);
+
+  for (let i = -R; i <= R + 1e-9; i += step){
+    const c = Math.abs(Math.abs(i) - R) < 1e-9 ? "#1b2b38" : "#14222d";
+    line([i,-R,0], [i,R,0], c, 1);
+    line([-R,i,0], [R,i,0], c, 1);
+  }
+  const axL = R * 1.05;
+  for (const [p, name] of [[[axL,0,0],"x₁"], [[0,axL,0],"x₂"], [[0,0,axL],"x₃"]]){
+    line(scl(p,-1), p, "#2b4254", 1.3);
+    const c = toCam(p);
+    if (c[2] > NEAR){ const s = toScr(c); tag(name, s[0], s[1], "#7a94a6", 12); }
+  }
+
+  const draws = [];
+  const B = colBasis();
+
+  // random samples: thin lines with endpoints, stacked in the background
+  for (const p of samples){
+    line([0,0,0], p, "rgba(240,169,44,.34)", 0.8);
+    const c = toCam(p);
+    if (c[2] > NEAR){
+      const s = toScr(c);
+      ctx.save();
+      ctx.fillStyle = "rgba(240,169,44,.85)";
+      ctx.beginPath(); ctx.arc(s[0], s[1], 1.7, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // column space
+  if (S.show.cspace && flat){
+    const E = R * 1.02;
+    if (B.length === 2){
+      const [u, w2] = B;
+      draws.push({d: 1e6, go: () => poly([
+        add(scl(u,-E), scl(w2,-E)), add(scl(u,E), scl(w2,-E)),
+        add(scl(u,E), scl(w2,E)),   add(scl(u,-E), scl(w2,E))
+      ], "rgba(127,227,255,.09)", "rgba(127,227,255,.32)")});
+    } else if (B.length === 1){
+      draws.push({d: 1e6, go: () => line(scl(B[0],-E), scl(B[0],E), "rgba(127,227,255,.5)", 2)});
+    }
+  }
+
+  const PAIRS = [[0,1], [1,2], [0,2]];
+  if (S.faceMode === "para"){
+    for (const [i, j] of PAIRS){
+      const quad = [[0,0,0], C[i], add(C[i], C[j]), C[j]];
+      draws.push({d: depth(scl(add(C[i], C[j]), 0.5)) + 0.02,
+        go: () => poly(quad, blend(CC[i], CC[j], 0.16), blend(CC[i], CC[j], 0.5))});
+    }
+  } else if (S.faceMode === "tri"){
+    for (const [i, j] of PAIRS){
+      draws.push({d: depth(scl(add(C[i], C[j]), 1/3)) + 0.02,
+        go: () => poly([C[i], [0,0,0], C[j]], blend(CC[i], CC[j], 0.15), blend(CC[i], CC[j], 0.45))});
+    }
+    if (S.cap){
+      const m = scl(add(add(C[0], C[1]), C[2]), 1/3);
+      draws.push({d: depth(m) + 0.02,
+        go: () => poly([C[0], C[1], C[2]], "rgba(240,169,44,.17)", "rgba(240,169,44,.6)")});
+    }
+  }
+
+  if (S.show.cols)
+    C.forEach((c, j) => draws.push({
+      d: depth(scl(c, 0.5)),
+      go: () => arrow([0,0,0], c, CC[j], 1.2, "a" + "₁₂₃"[j], 13)
+    }));
+  if (S.show.xv)
+    draws.push({d: depth(scl(x, 0.5)), go: () => arrow([0,0,0], x, XC, 1.5, "x", 13)});
+
+  if (S.show.chain){
+    for (let i = 1; i < 3; i++)
+      draws.push({d: depth(scl(node[i], 0.5)) + 0.01,
+                  go: () => line([0,0,0], node[i], "rgba(150,175,195,.22)", 1, [4,5])});
+    parts.forEach((p, i) => {
+      if (len(p) < 1e-6) return;
+      const mid = mix(node[i], node[i+1], 0.5);
+      draws.push({d: depth(mid), go: () => {
+        arrow(node[i], node[i+1], CC[i], 2.6, null);
+        const c = toCam(mid);
+        if (c[2] > NEAR){
+          const s = toScr(c);
+          tag(`x${"₁₂₃"[i]}a${"₁₂₃"[i]}`, s[0], s[1] - 16, CC[i], 12);
+        }
+      }});
+    });
+  }
+
+  draws.sort((a, b) => b.d - a.d);
+  for (const it of draws) it.go();
+  if (len(Ax) > 1e-6) arrow([0,0,0], Ax, AXC, 3, "Ax", 15);
+
+  if (S.show.bcol){
+    if (flat && B.length){
+      let foot = [0,0,0];
+      for (const e of B) foot = add(foot, scl(e, dot(S.b, e)));
+      if (len(sub(S.b, foot)) > 1e-4){
+        line(S.b, foot, "rgba(255,138,92,.75)", 1.4, [5,4]);
+        marker(foot, "#ff8a5c", null);
+      }
+    }
+    marker(S.b, BC, "b");
+  }
+
+  report(parts, Ax, D, flat, B.length);
+}
+
+const f2 = n => (Math.abs(n) < 5e-3 ? 0 : n).toFixed(2);
+const f3 = n => (Math.abs(n) < 5e-4 ? 0 : n).toFixed(3);
+const vec = v => `(${f2(v[0])}, ${f2(v[1])}, ${f2(v[2])})`;
+
+let liveCells = [];
+function report(parts, Ax, D, flat, rank){
+  const sel = S.edit.kind === "row" ? rowOf(S.edit.idx) : colOf(S.edit.idx);
+  for (let i = 0; i < 3; i++){
+    document.getElementById("o" + i).textContent = S.x[i].toFixed(2);
+    document.getElementById("v" + i).textContent = sel[i].toFixed(2);
+    document.getElementById("c" + i).textContent = vec(parts[i]);
+  }
+  document.getElementById("cs").textContent = vec(Ax);
+
+  const sum = S.x[0] + S.x[1] + S.x[2];
+  const q = document.getElementById("cq");
+  q.textContent = f2(sum);
+  q.style.color = Math.abs(sum - 1) < 0.005 ? AXC : "";
+
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++) liveCells[i][j].textContent = S.M[i][j].toFixed(2);
+
+  const lab = document.getElementById("cdl"), val = document.getElementById("cd");
+  const absD = Math.abs(D), C = cols();
+  if (S.faceMode === "para"){
+    lab.textContent = "Parallelepiped volume |det A|"; val.textContent = f3(absD);
+  } else if (S.faceMode === "tri" && S.cap){
+    lab.textContent = "Tetrahedron volume |det A|/6"; val.textContent = f3(absD / 6);
+  } else if (S.faceMode === "tri"){
+    let area = 0;
+    for (const [i, j] of [[0,1],[1,2],[0,2]]) area += len(cross(C[i], C[j])) / 2;
+    lab.textContent = "Total area of the three triangular faces"; val.textContent = f2(area);
+  } else {
+    lab.textContent = "det A"; val.textContent = f3(D);
+  }
+
+  const msg = document.getElementById("rankMsg");
+  msg.classList.toggle("flat", flat);
+  msg.innerHTML = flat
+    ? `det A = <b>${f3(D)}</b>　rank ${rank}<br>${rank === 2
+        ? "The three columns are coplanar; the column space is a flat plane. Any b outside it has no solution."
+        : "The three columns are collinear; the column space is only a line."}`
+    : `det A = <b>${f3(D)}</b>　rank 3<br>The column space is all of space &mdash; every b has a unique solution.`;
+}
+
+/* ===== canvas ===== */
+function resize(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + "px"; cv.style.height = H + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+addEventListener("resize", resize);
+
+/* ===== rotate & zoom ===== */
+let drag = null, pinch = null;
+cv.addEventListener("pointerdown", e => { drag = {x:e.clientX, y:e.clientY}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  S.az -= (e.clientX - drag.x) * 0.007;
+  S.el = Math.max(-1.45, Math.min(1.45, S.el + (e.clientY - drag.y) * 0.006));
+  drag = {x:e.clientX, y:e.clientY};
+  draw();
+});
+addEventListener("pointerup", () => drag = null);
+addEventListener("pointercancel", () => drag = null);
+cv.addEventListener("touchstart", e => {
+  if (e.touches.length === 2){
+    drag = null;
+    pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                       e.touches[0].clientY - e.touches[1].clientY);
+  }
+}, {passive:true});
+cv.addEventListener("touchmove", e => {
+  if (e.touches.length === 2 && pinch){
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                         e.touches[0].clientY - e.touches[1].clientY);
+    S.zoom = Math.max(0.45, Math.min(3, S.zoom * d / pinch));
+    pinch = d; draw();
+  }
+}, {passive:true});
+cv.addEventListener("touchend", () => pinch = null);
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  S.zoom = Math.max(0.45, Math.min(3, S.zoom * Math.exp(-e.deltaY * 0.0012)));
+  draw();
+}, {passive:false});
+
+/* ===== matrix display ===== */
+const matA = document.getElementById("matA");
+for (let i = 0; i < 3; i++){
+  liveCells[i] = [];
+  for (let j = 0; j < 3; j++){
+    const s = document.createElement("span");
+    s.style.color = CC[j];
+    liveCells[i][j] = s;
+    matA.appendChild(s);
+  }
+}
+function highlight(){
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      liveCells[i][j].classList.toggle("live",
+        S.edit.kind === "row" ? i === S.edit.idx : j === S.edit.idx);
+}
+
+/* ===== row/column editing ===== */
+const SUB = "₁₂₃";
+function readSel(){ return S.edit.kind === "row" ? rowOf(S.edit.idx) : colOf(S.edit.idx); }
+function writeSel(k, val){
+  if (S.edit.kind === "row") S.M[S.edit.idx][k] = val;
+  else S.M[k][S.edit.idx] = val;
+}
+function syncEditUI(){
+  const {kind, idx} = S.edit;
+  const sel = readSel();
+  document.getElementById("editTitle").textContent =
+    kind === "row" ? `Adjustable: row ${idx+1}` : `Adjustable: column ${idx+1} (a${SUB[idx]})`;
+  for (let k = 0; k < 3; k++){
+    const sl = document.getElementById("k" + k);
+    sl.value = sel[k];
+    document.getElementById("lb" + k).textContent =
+      kind === "row" ? "a" + SUB[k] : SUB[k];
+  }
+  for (const b of kindBtns) b.setAttribute("aria-pressed", b.dataset.k === kind);
+  for (const b of idxBtns) b.setAttribute("aria-pressed", +b.dataset.i === idx);
+  highlight();
+}
+for (let k = 0; k < 3; k++){
+  const sl = document.getElementById("k" + k);
+  sl.min = -2; sl.max = 2; sl.step = 0.01;
+  sl.addEventListener("input", () => { writeSel(k, parseFloat(sl.value)); draw(); });
+}
+const kindBtns = [...document.querySelectorAll("#segKind button")];
+const idxBtns = [...document.querySelectorAll("#segIdx button")];
+for (const b of kindBtns) b.onclick = () => { S.edit.kind = b.dataset.k; syncEditUI(); draw(); };
+for (const b of idxBtns)  b.onclick = () => { S.edit.idx = +b.dataset.i; syncEditUI(); draw(); };
+
+// project the selected row (column) onto the plane spanned by the other two, det goes to zero
+document.getElementById("flat").onclick = () => {
+  const {kind, idx} = S.edit;
+  const all = kind === "row" ? rows() : cols();
+  const others = all.filter((_, i) => i !== idx);
+  const p = projectOnto(all[idx], others);
+  for (let k = 0; k < 3; k++) writeSel(k, p[k]);
+  syncEditUI(); draw();
+};
+document.getElementById("resetA").onclick = () => {
+  S.M = M0.map(r => [...r]);
+  syncEditUI(); draw();
+};
+
+/* ===== x sliders ===== */
+function setSliderRange(){
+  const m = Math.max(3, Math.ceil(Math.max(...S.x.map(Math.abs))));
+  for (let i = 0; i < 3; i++){
+    const sl = document.getElementById("s" + i);
+    sl.min = -m; sl.max = m; sl.value = S.x[i];
+  }
+}
+for (let i = 0; i < 3; i++){
+  const sl = document.getElementById("s" + i);
+  sl.min = -3; sl.max = 3; sl.step = 0.05; sl.value = S.x[i];
+  sl.addEventListener("input", () => { S.x[i] = parseFloat(sl.value); draw(); });
+}
+document.getElementById("reset").onclick = () => { S.x = [1,1,1]; setSliderRange(); draw(); };
+document.getElementById("norm").onclick = () => {
+  const s = S.x[0] + S.x[1] + S.x[2];
+  if (Math.abs(s) < 1e-6) return;
+  S.x = S.x.map(v => v / s); setSliderRange(); draw();
+};
+
+/* ===== b and solving ===== */
+for (let i = 0; i < 3; i++){
+  const el = document.getElementById("b" + i);
+  el.value = S.b[i];
+  el.addEventListener("input", () => {
+    const n = parseFloat(el.value);
+    if (Number.isFinite(n)){ S.b[i] = n; draw(); }
+  });
+}
+document.getElementById("bFromAx").onclick = () => {
+  const C = cols();
+  S.b = add(add(scl(C[0], S.x[0]), scl(C[1], S.x[1])), scl(C[2], S.x[2]));
+  for (let i = 0; i < 3; i++) document.getElementById("b" + i).value = f2(S.b[i]);
+  draw();
+};
+document.getElementById("solve").onclick = () => {
+  const {y, residual} = leastSquares(cols(), S.b);
+  S.x = y; setSliderRange();
+  const el = document.getElementById("solveMsg");
+  const flat = Math.abs(detM()) < FLAT_TOL;
+  if (residual < 1e-4){
+    el.classList.remove("flat");
+    el.innerHTML = flat
+      ? `b lands exactly in the column space, <b>infinitely many solutions</b> &mdash; this is the minimum-norm one: x = ${vec(y)}`
+      : `<b>Unique solution</b>　x = ${vec(y)}`;
+  } else {
+    el.classList.add("flat");
+    el.innerHTML = `b is outside the column space, <b>no exact solution</b>. Least-squares solution x = ${vec(y)}, distance from b to the column space is <b>${f3(residual)}</b>.`;
+  }
+  draw();
+};
+
+/* ===== column space demo: random samples ===== */
+const nsSlider = document.getElementById("ns"), nsOut = document.getElementById("nsv");
+nsSlider.min = 0; nsSlider.max = 50; nsSlider.step = 1; nsSlider.value = S.nSamples;
+function setSamples(n){
+  S.nSamples = Math.max(0, Math.min(50, n));
+  nsSlider.value = S.nSamples;
+  nsOut.textContent = S.nSamples;
+  draw();
+}
+nsSlider.addEventListener("input", () => setSamples(+nsSlider.value));
+document.getElementById("reroll").onclick = () => {
+  POOL.length = 0;
+  if (S.nSamples === 0) S.nSamples = 50;
+  setSamples(S.nSamples);
+};
+document.getElementById("clearS").onclick = () => { POOL.length = 0; setSamples(0); };
+
+// spacebar adds one line without clearing; samples keep accumulating
+addEventListener("keydown", e => {
+  if (e.code !== "Space" && e.key !== " ") return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "BUTTON")) t.blur();
+  e.preventDefault();
+  setSamples(S.nSamples + 1);
+});
+
+/* ===== shape & display ===== */
+const segBtns = [...document.querySelectorAll("#seg button")];
+const capBox = document.getElementById("tcap"), capRow = document.getElementById("capRow");
+function setMode(m){
+  S.faceMode = m;
+  for (const b of segBtns) b.setAttribute("aria-pressed", b.dataset.m === m);
+  const usable = m === "tri";
+  capBox.disabled = !usable;
+  capRow.classList.toggle("off", !usable);
+  draw();
+}
+for (const b of segBtns) b.onclick = () => setMode(b.dataset.m);
+capBox.checked = S.cap;
+capBox.onchange = () => { S.cap = capBox.checked; draw(); };
+
+const bind = (id, key) => {
+  const el = document.getElementById(id);
+  el.checked = S.show[key];
+  el.onchange = () => { S.show[key] = el.checked; if (key === "spin") spin(); draw(); };
+};
+bind("t1","cols"); bind("t2","chain"); bind("t7","cspace"); bind("t6","bcol"); bind("t3","xv"); bind("t4","spin");
+
+let spinning = false;
+function spin(){
+  if (!S.show.spin){ spinning = false; return; }
+  if (spinning) return;
+  spinning = true;
+  (function loop(){
+    if (!S.show.spin){ spinning = false; return; }
+    S.az += 0.0035; draw(); requestAnimationFrame(loop);
+  })();
+}
+
+document.getElementById("toggle").onclick = () => {
+  const p = document.getElementById("panel");
+  p.hidden = !p.hidden;
+};
+
+syncEditUI();
+nsOut.textContent = S.nSamples;
+setMode(S.faceMode);
+resize();
+})();
+</script>
+</body>
+</html>

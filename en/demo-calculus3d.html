@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derivative &middot; Differential &middot; Integral</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#16223a; --line:#2a3c5e; --text:#e6ecf5;
+    --muted:#93a4c0; --gold:#f7c579; --teal:#7ee0c8; --violet:#b388ff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif; overflow:hidden; }
+  #view{ position:absolute; inset:0; }
+  header{
+    position:absolute; top:0; left:0; right:0; z-index:2;
+    padding:14px 20px 0; pointer-events:none;
+  }
+  header h1{ margin:0; font-size:18px; font-weight:650; letter-spacing:.02em; }
+  header p{ margin:4px 0 0; color:var(--muted); font-size:12.5px; }
+  #hud{
+    position:absolute; left:16px; bottom:16px; z-index:2;
+    background:rgba(22,34,58,.92); border:1px solid var(--line);
+    border-radius:8px; padding:12px 14px; width:min(340px, calc(100vw - 32px));
+    backdrop-filter:blur(8px);
+  }
+  #readout{
+    font-variant-numeric:tabular-nums; font-size:13px; line-height:1.55; margin:0 0 10px;
+  }
+  #readout b{ color:var(--gold); font-weight:600; }
+  #readout .teal{ color:var(--teal); }
+  #readout .vio{ color:var(--violet); }
+  .row{ display:flex; align-items:center; gap:8px; margin:6px 0; font-size:12.5px; color:var(--muted); }
+  .row label{ min-width:52px; }
+  .row input[type=range]{ flex:1; accent-color:var(--teal); }
+  .row select, .row button{
+    background:#1e2e4d; color:#fff; border:1px solid var(--line);
+    border-radius:4px; padding:5px 10px; font:inherit; cursor:pointer;
+  }
+  .row button.primary{ border-color:var(--teal); }
+  .checks{ display:flex; flex-wrap:wrap; gap:8px 12px; margin-top:6px; font-size:12.5px; }
+  .legend{
+    position:absolute; right:16px; top:64px; z-index:2;
+    font-size:12px; color:var(--muted); line-height:1.8;
+    background:rgba(22,34,58,.75); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px;
+  }
+  .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .hint{ position:absolute; right:16px; bottom:16px; z-index:2;
+    font-size:12px; color:var(--muted); }
+</style>
+<style>
+.backbar{
+  position:absolute;top:0;left:0;right:0;z-index:5;
+  display:flex;align-items:center;gap:.55rem;
+  padding:8px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:rgba(11,18,32,.92);backdrop-filter:blur(6px);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+header{padding-top:52px !important}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="calculus.html">&larr; Change &amp; Gradients</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+<div id="view"></div>
+<header>
+  <h1>Calculus You Can See</h1>
+  <p>Drag to rotate &middot; the tangent is the derivative, the small step is the differential, the bars are the integral</p>
+</header>
+<div class="legend">
+  <div><span class="dot" style="background:#7ee0c8"></span>y = f(x)</div>
+  <div><span class="dot" style="background:#f7c579"></span>tangent = f&prime;(x)</div>
+  <div><span class="dot" style="background:#ef6a5e"></span>differential dy = f&prime; dx</div>
+  <div><span class="dot" style="background:#b388ff"></span>integral bars &Sigma; f &Delta;x</div>
+  <div><span class="dot" style="background:#5dade2"></span>antiderivative F(x)</div>
+</div>
+<div class="hint">Drag to rotate &middot; scroll to zoom</div>
+<div id="hud">
+  <div id="readout"></div>
+  <div class="row">
+    <label>Function</label>
+    <select id="fn">
+      <option value="sin">sin x</option>
+      <option value="quad" selected>x² / 4</option>
+      <option value="exp">e<sup>x/3</sup></option>
+      <option value="wave">sin x + 0.4x</option>
+    </select>
+    <button class="primary" id="play">Play</button>
+  </div>
+  <div class="row"><label>Position x</label><input id="xPos" type="range" min="-2.8" max="2.8" step="0.01" value="1.1"></div>
+  <div class="row"><label>Slices n</label><input id="nBox" type="range" min="4" max="80" step="1" value="16"></div>
+  <div class="row"><label>dx</label><input id="dxBox" type="range" min="0.08" max="0.55" step="0.01" value="0.28"></div>
+  <div class="checks">
+    <label><input type="checkbox" id="tg" checked> Tangent</label>
+    <label><input type="checkbox" id="df" checked> Differential</label>
+    <label><input type="checkbox" id="it" checked> Integral bars</label>
+    <label><input type="checkbox" id="af" checked> Antiderivative</label>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* Lightweight OrbitControls: API-compatible, avoids third-party CDN dependency */
+(function(){
+  if (typeof THREE === "undefined" || THREE.OrbitControls) return;
+  THREE.OrbitControls = function(object, dom){
+    var scope = this;
+    scope.object = object; scope.domElement = dom;
+    scope.target = new THREE.Vector3();
+    scope.enableDamping = false; scope.dampingFactor = 0.08;
+    scope.minDistance = 0.5; scope.maxDistance = 500;
+    scope.maxPolarAngle = Math.PI;
+    var sph = new THREE.Spherical(), off = new THREE.Vector3();
+    function sync(){ off.copy(object.position).sub(scope.target); sph.setFromVector3(off); }
+    sync();
+    var tT = sph.theta, tP = sph.phi, tR = sph.radius, inited = false;
+    var drag = false, lx = 0, ly = 0;
+    function down(e){ drag = true; lx = e.clientX; ly = e.clientY;
+      if (dom.setPointerCapture) { try { dom.setPointerCapture(e.pointerId); } catch(_){} } }
+    function move(e){
+      if (!drag) return;
+      tT -= (e.clientX - lx) * 0.006;
+      tP -= (e.clientY - ly) * 0.006;
+      tP = Math.max(0.05, Math.min(scope.maxPolarAngle - 0.02, tP));
+      lx = e.clientX; ly = e.clientY;
+    }
+    function up(){ drag = false; }
+    function wheel(e){
+      e.preventDefault();
+      tR *= (1 + Math.sign(e.deltaY) * 0.08);
+      tR = Math.max(scope.minDistance, Math.min(scope.maxDistance, tR));
+    }
+    dom.addEventListener("pointerdown", down);
+    dom.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    dom.addEventListener("wheel", wheel, {passive:false});
+    scope.update = function(){
+      if (!inited){ sync(); tT = sph.theta; tP = sph.phi; tR = sph.radius; inited = true; }
+      var k = scope.enableDamping ? 0.18 : 1;
+      sph.theta  += (tT - sph.theta)  * k;
+      sph.phi    += (tP - sph.phi)    * k;
+      sph.radius += (tR - sph.radius) * k;
+      off.setFromSpherical(sph);
+      scope.object.position.copy(scope.target).add(off);
+      scope.object.lookAt(scope.target);
+    };
+  };
+})();
+</script>
+<script>
+const FNS = {
+  sin:  { f: x => Math.sin(x),            df: x => Math.cos(x),           name: "sin x" },
+  quad: { f: x => 0.25 * x * x,           df: x => 0.5 * x,               name: "x² / 4" },
+  exp:  { f: x => Math.exp(x / 3) - 0.5,  df: x => Math.exp(x / 3) / 3,   name: "e^{x/3} − ½" },
+  wave: { f: x => Math.sin(x) + 0.4 * x,  df: x => Math.cos(x) + 0.4,     name: "sin x + 0.4x" }
+};
+const X0 = -3, X1 = 3, SAMPLES = 240;
+const A = -2.4;
+
+const view = document.getElementById("view");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1220);
+scene.fog = new THREE.Fog(0x0b1220, 18, 36);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
+camera.position.set(6.4, 4.2, 8.2);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+view.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 1.1, 0.4);
+controls.maxPolarAngle = Math.PI * 0.48;
+
+scene.add(new THREE.AmbientLight(0x9ab0d0, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 0.75);
+key.position.set(4, 8, 6);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x7ee0c8, 0.25);
+fill.position.set(-6, 3, -4);
+scene.add(fill);
+
+function resize(){
+  const w = view.clientWidth, h = view.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener("resize", resize);
+resize();
+
+const grid = new THREE.GridHelper(12, 12, 0x2a3c5e, 0x1a2740);
+grid.position.y = 0;
+scene.add(grid);
+
+function axisLine(from, to, color){
+  const g = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(...from), new THREE.Vector3(...to)
+  ]);
+  scene.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color })));
+}
+axisLine([-4,0,0],[4,0,0], 0x93a4c0);
+axisLine([0,0,0],[0,4.2,0], 0x93a4c0);
+axisLine([0,0,-2.2],[0,0,2.6], 0x93a4c0);
+
+const groupCurve = new THREE.Group();
+const groupTan = new THREE.Group();
+const groupDiff = new THREE.Group();
+const groupArea = new THREE.Group();
+const groupF = new THREE.Group();
+scene.add(groupCurve, groupTan, groupDiff, groupArea, groupF);
+
+const dotGeo = new THREE.SphereGeometry(0.07, 16, 16);
+const pointMat = new THREE.MeshStandardMaterial({ color: 0xf7c579, emissive: 0x8a5a12, roughness: 0.35 });
+const pointMesh = new THREE.Mesh(dotGeo, pointMat);
+scene.add(pointMesh);
+
+function currentFn(){ return FNS[document.getElementById("fn").value]; }
+
+function rebuildCurve(){
+  groupCurve.clear();
+  const { f } = currentFn();
+  const pts = [];
+  for (let i = 0; i <= SAMPLES; i++){
+    const x = X0 + (X1 - X0) * i / SAMPLES;
+    pts.push(new THREE.Vector3(x, f(x), 0));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  groupCurve.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x7ee0c8 })));
+  const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.025, 8, false);
+  groupCurve.add(new THREE.Mesh(tube, new THREE.MeshStandardMaterial({
+    color: 0x7ee0c8, emissive: 0x0b3a32, roughness: 0.4, metalness: 0.1
+  })));
+}
+
+function rebuildF(){
+  groupF.clear();
+  if (!document.getElementById("af").checked) return;
+  const { f } = currentFn();
+  const pts = [];
+  let acc = 0;
+  const dx = (X1 - X0) / SAMPLES;
+  for (let i = 0; i <= SAMPLES; i++){
+    const x = X0 + dx * i;
+    if (x > A) acc += f(x - dx) * dx;
+    const y = Math.max(0, acc);
+    pts.push(new THREE.Vector3(x, y, 1.55));
+  }
+  const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.022, 8, false);
+  groupF.add(new THREE.Mesh(tube, new THREE.MeshStandardMaterial({
+    color: 0x5dade2, emissive: 0x12304a, roughness: 0.45
+  })));
+}
+
+function rebuildArea(xNow){
+  groupArea.clear();
+  if (!document.getElementById("it").checked) return;
+  const { f } = currentFn();
+  const n = +document.getElementById("nBox").value;
+  const left = A, right = xNow;
+  if (right <= left + 1e-4) return;
+  const dx = (right - left) / n;
+  const depth = 0.42;
+  for (let i = 0; i < n; i++){
+    const x = left + (i + 0.5) * dx;
+    const h = f(x);
+    if (Math.abs(h) < 1e-4) continue;
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.max(dx * 0.88, 0.02), Math.abs(h), depth),
+      new THREE.MeshStandardMaterial({
+        color: 0xb388ff,
+        emissive: 0x2a1650,
+        transparent: true,
+        opacity: 0.55,
+        roughness: 0.5
+      })
+    );
+    box.position.set(x, h / 2, depth * 0.55);
+    groupArea.add(box);
+  }
+}
+
+function rebuildTangent(x){
+  groupTan.clear();
+  groupDiff.clear();
+  const { f, df } = currentFn();
+  const y = f(x), sl = df(x);
+  pointMesh.position.set(x, y, 0);
+
+  if (document.getElementById("tg").checked){
+    const span = 1.35;
+    const a = new THREE.Vector3(x - span, y - sl * span, 0);
+    const b = new THREE.Vector3(x + span, y + sl * span, 0);
+    const geo = new THREE.BufferGeometry().setFromPoints([a, b]);
+    groupTan.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xf7c579 })));
+  }
+
+  if (document.getElementById("df").checked){
+    const dx = +document.getElementById("dxBox").value;
+    const dy = sl * dx;
+    const mat = new THREE.LineBasicMaterial({ color: 0xef6a5e });
+    const p0 = new THREE.Vector3(x, y, 0.02);
+    const p1 = new THREE.Vector3(x + dx, y, 0.02);
+    const p2 = new THREE.Vector3(x + dx, y + dy, 0.02);
+    groupDiff.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p0, p1]), mat));
+    groupDiff.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1, p2]), mat));
+    groupDiff.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p0, p2]),
+      new THREE.LineDashedMaterial({ color: 0xef6a5e, dashSize: 0.06, gapSize: 0.04 })));
+    groupDiff.children[2].computeLineDistances();
+    const stem = new THREE.Mesh(
+      new THREE.BoxGeometry(dx, Math.max(Math.abs(dy), 0.02), 0.08),
+      new THREE.MeshStandardMaterial({ color: 0xef6a5e, transparent: true, opacity: 0.35 })
+    );
+    stem.position.set(x + dx / 2, y + dy / 2, 0.06);
+    groupDiff.add(stem);
+  }
+}
+
+function integralApprox(xNow){
+  const { f } = currentFn();
+  const n = +document.getElementById("nBox").value;
+  if (xNow <= A) return 0;
+  const dx = (xNow - A) / n;
+  let s = 0;
+  for (let i = 0; i < n; i++) s += f(A + (i + 0.5) * dx) * dx;
+  return s;
+}
+
+function updateHUD(x){
+  const spec = currentFn();
+  const y = spec.f(x), sl = spec.df(x);
+  const dx = +document.getElementById("dxBox").value;
+  const area = integralApprox(x);
+  document.getElementById("readout").innerHTML =
+    `f(x) = ${spec.name}<br>` +
+    `x = <b>${x.toFixed(2)}</b>　f(x) = <b>${y.toFixed(2)}</b><br>` +
+    `derivative f&prime;(x) = <span class="teal">${sl.toFixed(2)}</span>　(tangent slope)<br>` +
+    `differential dy &asymp; f&prime; dx = <span class="teal">${(sl*dx).toFixed(2)}</span><br>` +
+    `integral &int;<sub>${A}</sub><sup>x</sup> f &asymp; <span class="vio">${area.toFixed(2)}</span>`;
+}
+
+let playing = false;
+function setX(x){
+  document.getElementById("xPos").value = x;
+  rebuildTangent(x);
+  rebuildArea(x);
+  updateHUD(x);
+}
+
+document.getElementById("fn").onchange = () => {
+  rebuildCurve(); rebuildF();
+  setX(+document.getElementById("xPos").value);
+};
+document.getElementById("xPos").oninput = e => { playing = false; setX(+e.target.value); };
+document.getElementById("nBox").oninput = () => setX(+document.getElementById("xPos").value);
+document.getElementById("dxBox").oninput = () => setX(+document.getElementById("xPos").value);
+["tg","df","it","af"].forEach(id => {
+  document.getElementById(id).onchange = () => {
+    rebuildF();
+    setX(+document.getElementById("xPos").value);
+  };
+});
+document.getElementById("play").onclick = () => {
+  playing = !playing;
+  document.getElementById("play").textContent = playing ? "Pause" : "Play";
+};
+
+rebuildCurve();
+rebuildF();
+setX(+document.getElementById("xPos").value);
+
+function tick(t){
+  if (playing){
+    const x = -2.6 + 2.6 * (1 + Math.sin(t * 0.00045));
+    setX(x);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

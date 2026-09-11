@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ground Station Pointing at a Satellite · A Complete Vector Calculation</title>
+<style>
+:root{
+  --field:#0f1826;--panel:#16223a;--panel-2:#1c2b47;--line:#2a3c5e;
+  --fg:#e6ecf5;--fg-dim:#93a4c0;
+  --amber:#f0a63c;--amber-soft:#f7c579;--violet:#b388ff;--violet-soft:#d3bcff;
+  --cyan:#3ec8d8;--cyan-soft:#8fe3ed;--coral:#ef6a5e;--green:#6ed6a0;--blue:#5aa9f0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1100px 500px at 14% -12%, #16243c 0%, transparent 60%),
+    radial-gradient(900px 460px at 88% 112%, #1d2438 0%, transparent 62%),
+    var(--field);
+  color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;min-height:100vh;
+}
+.masthead{padding:22px 26px 14px;border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 22px}
+.masthead h1{font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;font-size:23px;font-weight:600;margin:0}
+.masthead p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:66ch}
+
+.math-strip{display:flex;gap:10px;flex-wrap:wrap;padding:12px 26px;border-bottom:1px solid var(--line);
+  font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--fg-dim)}
+.math-strip span{padding:3px 10px;border:1px solid var(--line);border-radius:2px;background:var(--panel)}
+.math-strip .x{color:var(--violet-soft);border-color:#4a3a6e}
+.math-strip .d{color:var(--amber-soft);border-color:#6b5220}
+
+.stage{display:grid;grid-template-columns:1.3fr 1fr;align-items:stretch}
+.side{padding:20px 24px 26px;min-width:0}
+.side.left{border-right:1px solid var(--line)}
+.side-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.side-head h2{font-family:Georgia,"Songti SC",serif;font-size:18px;margin:0;font-weight:600;color:var(--cyan-soft)}
+.side.right .side-head h2{color:var(--amber-soft)}
+.side-head .eq{font-size:13px;color:var(--fg-dim);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+.viewport{position:relative;width:100%;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:none}
+#vp3d{aspect-ratio:4/3;min-height:340px;cursor:grab;background:radial-gradient(120% 100% at 50% 20%,#101c30 0%,#080d17 100%)}
+#vp3d:active{cursor:grabbing}
+#vpSky{aspect-ratio:1/1;min-height:250px;background:#0c131f}
+.viewport canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:12px;top:10px;font-size:11.5px;color:#7d8ea8;pointer-events:none}
+
+/* formula in the canvas corner */
+.formula{
+  position:absolute;left:12px;bottom:12px;right:12px;
+  background:rgba(9,15,26,.80);border:1px solid var(--line);border-radius:3px;
+  padding:9px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12px;line-height:1.85;color:var(--fg-dim);pointer-events:none;
+  backdrop-filter:blur(3px);
+}
+.formula .l{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.formula .name{color:#6f88ab;min-width:112px;display:inline-block}
+.formula b{color:var(--fg);font-weight:600}
+.formula .hx{color:var(--violet-soft)}
+.formula .hd{color:var(--amber-soft)}
+.formula .bad{color:var(--coral)}
+
+.dials{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.dial{background:var(--panel);padding:9px 11px}
+.dial .k{font-size:11.5px;color:var(--fg-dim);display:block;margin-bottom:2px}
+.dial .v{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:18px;font-variant-numeric:tabular-nums;line-height:1.25;color:var(--amber)}
+.dial.geo .v{color:var(--violet)}
+.dial.warn .v{color:var(--coral)}
+.dial.ok .v{color:var(--green)}
+
+.controls{margin-top:16px;display:grid;gap:12px}
+.ctl{display:grid;grid-template-columns:104px 1fr 88px;align-items:center;gap:12px}
+.ctl label{font-size:13.5px;color:var(--fg-dim)}
+.ctl output{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+  text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  margin-top:-6.5px;border:none;cursor:pointer;background:var(--cyan)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;border:none;cursor:pointer;background:var(--cyan)}
+.side.right input[type=range]::-webkit-slider-thumb{background:var(--amber)}
+.side.right input[type=range]::-moz-range-thumb{background:var(--amber)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:3px}
+
+.switch-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--fg-dim)}
+.btn{background:var(--panel);border:1px solid var(--line);color:var(--fg);font:inherit;font-size:12.5px;
+  padding:5px 13px;border-radius:3px;cursor:pointer}
+.btn:hover{background:var(--panel-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{background:transparent;border:none;color:var(--fg-dim);font:inherit;font-size:12.5px;
+  padding:5px 10px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--panel-2);color:var(--fg)}
+.check{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--fg-dim)}
+.check input{accent-color:var(--cyan);width:15px;height:15px}
+
+.notes{border-top:1px solid var(--line);padding:24px 26px 40px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:26px 34px}
+.notes section h3{font-family:Georgia,"Songti SC",serif;font-size:16px;margin:0 0 6px;font-weight:600}
+.notes section p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:52ch}
+.notes .k-violet{color:var(--violet-soft)}
+.notes .k-amber{color:var(--amber-soft)}
+.notes code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  color:var(--fg);background:var(--panel-2);padding:1px 5px;border-radius:2px}
+.fallback{padding:40px 26px;color:var(--coral)}
+
+@media (max-width:980px){
+  .stage{grid-template-columns:1fr}
+  .side.left{border-right:none;border-bottom:1px solid var(--line)}
+  .formula{font-size:11px}
+  .formula .name{min-width:96px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 26px;border-bottom:1px solid var(--line,#2a3c5e);
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+}
+.backbar a{color:#93a4c0;text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:#e6ecf5;border-bottom-color:#e6ecf5}
+.backbar .sep{color:#3d5170}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="vectors.html">&larr; Vectors &amp; Space</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<header class="masthead">
+  <h1>Ground Station Pointing at a Satellite</h1>
+  <p>Which way should the antenna point? Build a local coordinate frame under the station's feet with cross products, then measure the satellite's direction in that frame with dot products &mdash; elevation, azimuth, and slant range all fall out.</p>
+</header>
+
+<div class="math-strip">
+  <span class="x">Ê = Û &times; ŷ　(local east)</span>
+  <span class="x">N̂ = Ê &times; Û　(local north)</span>
+  <span class="d">sin El = v·Û ⁄ |v|</span>
+  <span class="d">Az = atan2(v·Ê, v·N̂)</span>
+  <span class="d">visibility: v&middot;Û &gt; 0</span>
+</div>
+
+<main class="stage">
+
+  <div class="side left">
+    <div class="side-head">
+      <h2>Earth-Centred Frame</h2>
+      <span class="eq">v = P &minus; S　(satellite position minus station position)</span>
+    </div>
+
+    <div class="viewport" id="vp3d">
+      <canvas id="cv3d"></canvas>
+      <span class="hint">Drag to rotate &middot; scroll to zoom</span>
+      <div class="formula" id="formulaBox"></div>
+    </div>
+
+    <div class="dials">
+      <div class="dial" id="dElWrap"><span class="k">Elevation El</span><span class="v" id="dEl">&mdash;</span></div>
+      <div class="dial"><span class="k">Azimuth Az</span><span class="v" id="dAz">&mdash;</span></div>
+      <div class="dial"><span class="k">Slant range |v|</span><span class="v" id="dRange">&mdash;</span></div>
+      <div class="dial geo"><span class="k">Geocentric angle γ</span><span class="v" id="dGamma">&mdash;</span></div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sLat">Station latitude</label>
+        <input type="range" id="sLat" min="-81" max="81" step="0.5" value="39.9">
+        <output id="oLat">39.9°N</output>
+      </div>
+      <div class="ctl">
+        <label for="sLon">Station longitude</label>
+        <input type="range" id="sLon" min="-180" max="180" step="0.5" value="116.4">
+        <output id="oLon">116.4°E</output>
+      </div>
+      <div class="switch-row">
+        <span>Common sites</span>
+        <span class="seg" role="group" aria-label="preset sites">
+          <button data-lat="39.9" data-lon="116.4" aria-pressed="true">Beijing</button>
+          <button data-lat="1.35" data-lon="103.8" aria-pressed="false">Singapore</button>
+          <button data-lat="-33.9" data-lon="151.2" aria-pressed="false">Sydney</button>
+          <button data-lat="78.2" data-lon="15.6" aria-pressed="false">Svalbard</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="side right">
+    <div class="side-head">
+      <h2>Sky Plot &middot; Antenna Pointing</h2>
+      <span class="eq">centre is zenith, outer ring is the horizon</span>
+    </div>
+
+    <div class="viewport" id="vpSky">
+      <canvas id="cvSky"></canvas>
+    </div>
+
+    <div class="dials">
+      <div class="dial"><span class="k">One-way delay</span><span class="v" id="dDelay">&mdash;</span></div>
+      <div class="dial"><span class="k">Orbital period</span><span class="v" id="dPeriod">&mdash;</span></div>
+      <div class="dial" id="dDriftWrap"><span class="k">Daily drift</span><span class="v" id="dDrift">&mdash;</span></div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sSatLon">Satellite sub-point longitude</label>
+        <input type="range" id="sSatLon" min="-180" max="180" step="0.5" value="110.5">
+        <output id="oSatLon">110.5°E</output>
+      </div>
+      <div class="ctl">
+        <label for="sAlt">Satellite altitude</label>
+        <input type="range" id="sAlt" min="35000" max="42000" step="10" value="35786">
+        <output id="oAlt">35786 km</output>
+      </div>
+      <div class="switch-row">
+        <button class="btn" id="btnGeo">Back to geostationary altitude, 35786 km</button>
+        <label class="check"><input type="checkbox" id="cFootprint" checked> Show coverage footprint</label>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="notes">
+  <section>
+    <h3 class="k-violet">The cross product builds the coordinate frame</h3>
+    <p>The "east, north, zenith" under the station's feet doesn't fall out of the sky &mdash; it has to be built on the spot. The zenith direction <code>Û</code> is just the station's position vector normalised; east comes from <code>Û &times; ŷ</code> (ŷ is the Earth's axis), and north is filled in by <code>Ê &times; Û</code>. Three mutually perpendicular unit vectors, assembled with two cross products &mdash; the same trick as building a camera basis with <code>right = forward &times; up</code> in a game engine. Near the poles Û becomes nearly parallel to the Earth's axis, the cross product shrinks toward zero, and east loses its definition &mdash; which is why polar stations need a different coordinate scheme.</p>
+  </section>
+  <section>
+    <h3 class="k-amber">The dot product measures the angles</h3>
+    <p>Once you have the line-of-sight vector <code>v = P &minus; S</code>, elevation is the complement of its angle to the zenith direction: <code>sin El = v&middot;Û / |v|</code>. Azimuth comes from projecting v onto the horizontal plane and reading off how much of it lands along east versus north: <code>Az = atan2(v&middot;Ê, v&middot;N̂)</code>. Visibility is even simpler &mdash; <code>v&middot;Û &gt; 0</code> means above the horizon, less than zero means blocked by the Earth. Three dot products, and both antenna pointing angles are settled.</p>
+    <p style="margin-top:10px">Worth a side note: the textbook formula <code>tan Az = tan Δλ / sin φ</code> needs a quadrant correction split into four cases depending on hemisphere and whether the satellite is east or west &mdash; get one wrong and you're off by 180°. The vector method's <code>atan2</code> reads the quadrant straight off the signs of the two projected components, one line, works the same in either hemisphere &mdash; drag latitude across the equator and the reading stays continuous.</p>
+  </section>
+  <section>
+    <h3>Why only one altitude stays geostationary</h3>
+    <p>Drag the altitude slider and watch the orbital period. By Kepler's third law <code>T = 2π&radic;(r&sup3;/μ)</code>, period depends only on orbital radius. For a satellite to look pinned in the sky, its period has to equal one sidereal day, 23h56m04s, which works backward to a unique r = 42164 km &mdash; altitude 35786 km. Go a little higher and the period lengthens, so the satellite drifts west relative to the ground; go lower and it drifts east &mdash; that's exactly how the daily-drift reading is computed, and the sub-satellite longitude creeps day by day.</p>
+  </section>
+  <section>
+    <h3>What these numbers are actually for</h3>
+    <p>Elevation decides how high to tilt the antenna, and also how much atmosphere the signal has to punch through: below roughly 5&ndash;10° elevation, links usually stop working &mdash; rain fade and ground clutter both get much worse. Drag latitude up to 81° and you'll find a geostationary satellite simply never clears the horizon &mdash; exactly why high-latitude regions switch to polar or highly elliptical orbits instead. Slant range divided by the speed of light gives the one-way delay: about 120 ms for geostationary, and the round trip plus relay processing adds up to nearly half a second &mdash; the source of that noticeable pause on a satellite phone call.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+"use strict";
+if (typeof THREE === "undefined") {
+  document.querySelector(".stage").innerHTML =
+    '<div class="fallback">The 3D library failed to load. Check your connection and refresh.</div>';
+  return;
+}
+function $(id){ return document.getElementById(id); }
+var D2R = Math.PI/180, R2D = 180/Math.PI;
+
+/* physical constants */
+var RE = 6378.137;                 /* Earth's equatorial radius, km */
+var MU = 398600.4418;              /* Earth's gravitational parameter, km³/s² */
+var C_LIGHT = 299792.458;          /* km/s */
+var T_SIDEREAL = 86164.0905;       /* sidereal day, s */
+var GEO_ALT = 35786.0;
+
+var SCALE = 1/RE;                  /* Earth radius = 1 in scene units */
+
+/* lat/lon -> Cartesian (+y is Earth's axis, +x points to 0°E on the equator, +z points to 90°E) */
+function geo2vec(latDeg, lonDeg, radius) {
+  var la = latDeg*D2R, lo = lonDeg*D2R;
+  return new THREE.Vector3(
+    radius*Math.cos(la)*Math.cos(lo),
+    radius*Math.sin(la),
+    radius*Math.cos(la)*Math.sin(lo));
+}
+
+/* ============ three.js scene ============ */
+var wrap3d = $("vp3d");
+var renderer = new THREE.WebGLRenderer({canvas:$("cv3d"), antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+var scene = new THREE.Scene();
+var cam = new THREE.PerspectiveCamera(38, 4/3, 0.05, 400);
+scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+var dl = new THREE.DirectionalLight(0xffffff, 0.75); dl.position.set(5,3,6); scene.add(dl);
+var dl2 = new THREE.DirectionalLight(0x6688ff, 0.25); dl2.position.set(-4,-2,-5); scene.add(dl2);
+
+var camState = {az:0.9, pol:1.05, r:16};
+(function(){
+  var t = new THREE.Vector3(0,0,0);
+  function apply(){
+    camState.pol = Math.max(0.1, Math.min(Math.PI-0.1, camState.pol));
+    camState.r = Math.max(2.2, Math.min(45, camState.r));
+    cam.position.set(
+      t.x + camState.r*Math.sin(camState.pol)*Math.cos(camState.az),
+      t.y + camState.r*Math.cos(camState.pol),
+      t.z + camState.r*Math.sin(camState.pol)*Math.sin(camState.az));
+    cam.lookAt(t);
+  }
+  var drag=false,lx=0,ly=0;
+  wrap3d.addEventListener("pointerdown",function(e){drag=true;lx=e.clientX;ly=e.clientY;wrap3d.setPointerCapture(e.pointerId);});
+  wrap3d.addEventListener("pointermove",function(e){
+    if(!drag)return;
+    camState.az-=(e.clientX-lx)*0.0075; camState.pol-=(e.clientY-ly)*0.0075;
+    lx=e.clientX;ly=e.clientY;apply();
+  });
+  function stop(e){drag=false;if(e.pointerId!==undefined&&wrap3d.hasPointerCapture&&wrap3d.hasPointerCapture(e.pointerId))wrap3d.releasePointerCapture(e.pointerId);}
+  wrap3d.addEventListener("pointerup",stop); wrap3d.addEventListener("pointercancel",stop);
+  wrap3d.addEventListener("wheel",function(e){e.preventDefault();camState.r*=(1+Math.sign(e.deltaY)*0.09);apply();},{passive:false});
+  apply();
+})();
+
+/* Earth */
+var earth = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32),
+  new THREE.MeshStandardMaterial({color:0x1b3a5c, roughness:0.95, metalness:0.0,
+    transparent:true, opacity:0.92}));
+scene.add(earth);
+(function graticule(){
+  var mat = new THREE.LineBasicMaterial({color:0x3f6f96, transparent:true, opacity:0.34});
+  var matHi = new THREE.LineBasicMaterial({color:0x6fd0e8, transparent:true, opacity:0.75});
+  var i, j, pts;
+  for (i=-75; i<=75; i+=15){                       /* latitude lines */
+    pts = [];
+    for (j=0;j<=360;j+=4) pts.push(geo2vec(i, j, 1.002));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      i===0 ? matHi : mat));
+  }
+  for (i=0; i<360; i+=15){                          /* longitude lines */
+    pts = [];
+    for (j=-90;j<=90;j+=4) pts.push(geo2vec(j, i, 1.002));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      i===0 ? matHi : mat));
+  }
+})();
+/* Earth's axis */
+(function(){
+  var g = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,-1.45,0), new THREE.Vector3(0,1.45,0)]);
+  scene.add(new THREE.Line(g, new THREE.LineDashedMaterial({
+    color:0x8fa0bb, dashSize:0.1, gapSize:0.07, transparent:true, opacity:0.6})).computeLineDistances());
+})();
+
+/* geostationary orbit ring */
+var orbitRing = new THREE.Line(new THREE.BufferGeometry(),
+  new THREE.LineBasicMaterial({color:0xf0a63c, transparent:true, opacity:0.35}));
+scene.add(orbitRing);
+
+/* ground station */
+var station = new THREE.Mesh(new THREE.SphereGeometry(0.035, 14, 14),
+  new THREE.MeshBasicMaterial({color:0x6ed6a0}));
+scene.add(station);
+/* satellite */
+var satBody = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.10),
+  new THREE.MeshStandardMaterial({color:0xf7c579, roughness:0.4, emissive:0x3a2a08}));
+scene.add(satBody);
+var satPanel = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.006, 0.10),
+  new THREE.MeshStandardMaterial({color:0x2f5ea8, roughness:0.35, emissive:0x0a1730}));
+scene.add(satPanel);
+
+/* triangle: Earth centre - ground station - satellite */
+function newLine(color, opacity, dashed, w){
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+  var m = dashed
+    ? new THREE.LineDashedMaterial({color:color, dashSize:0.16, gapSize:0.11, transparent:true, opacity:opacity})
+    : new THREE.LineBasicMaterial({color:color, transparent:true, opacity:opacity});
+  var l = new THREE.Line(g, m);
+  l.userData.dashed = !!dashed;
+  l.setEnds = function(a,b){
+    var p = this.geometry.attributes.position;
+    p.setXYZ(0,a.x,a.y,a.z); p.setXYZ(1,b.x,b.y,b.z);
+    p.needsUpdate = true; this.geometry.computeBoundingSphere();
+    if (this.userData.dashed) this.computeLineDistances();
+  };
+  scene.add(l); return l;
+}
+var lineOS = newLine(0x8fa0bb, 0.55, false);       /* Earth centre -> station */
+var lineOP = newLine(0x8fa0bb, 0.4, true);         /* Earth centre -> satellite */
+var lineSP = newLine(0xf0a63c, 0.95, false);       /* station -> satellite (line of sight) */
+
+/* local ENU triad */
+function makeArrow(color){
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({color:color, roughness:0.45});
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.011,0.011,1,10), mat);
+  var head = new THREE.Mesh(new THREE.ConeGeometry(0.032,0.09,14), mat);
+  g.add(shaft); g.add(head);
+  g.set2 = function(origin, dir, len){
+    var hl = 0.09, sl = Math.max(len-hl, 1e-4);
+    shaft.scale.set(1, sl, 1); shaft.position.set(0, sl/2, 0);
+    head.position.set(0, sl+hl/2, 0);
+    this.position.copy(origin);
+    this.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  };
+  scene.add(g); return g;
+}
+var arrU = makeArrow(0x5aa9f0), arrE = makeArrow(0xef6a5e), arrN = makeArrow(0x6ed6a0);
+function sprite(text, css, sc){
+  var c = document.createElement("canvas"); c.width=128;c.height=64;
+  var x=c.getContext("2d");
+  x.font="bold 46px ui-monospace,Menlo,monospace";
+  x.textAlign="center";x.textBaseline="middle";
+  x.shadowColor="rgba(0,0,0,.9)";x.shadowBlur=10;x.fillStyle=css;
+  x.fillText(text,64,34);
+  var t=new THREE.CanvasTexture(c); t.minFilter=THREE.LinearFilter;
+  var s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false}));
+  s.scale.set(sc||0.30, (sc||0.30)*0.5, 1); s.renderOrder=200; scene.add(s); return s;
+}
+var lblU = sprite("U","#5aa9f0"), lblE = sprite("E","#ef6a5e"), lblN = sprite("N","#6ed6a0");
+var lblSat = sprite("SAT","#f7c579",0.42), lblSta = sprite("GS","#6ed6a0",0.34);
+
+/* coverage footprint (ground circle visible to the satellite) */
+var footprint = new THREE.Line(new THREE.BufferGeometry(),
+  new THREE.LineBasicMaterial({color:0xf0a63c, transparent:true, opacity:0.55}));
+scene.add(footprint);
+
+/* ============ state and computation ============ */
+var S = {lat:39.9, lon:116.4, satLon:110.5, alt:GEO_ALT, footprint:true};
+var R = {};
+
+function compute() {
+  var r = RE + S.alt;
+  var Svec = geo2vec(S.lat, S.lon, RE);          /* ground station position vector (km) */
+  var Pvec = geo2vec(0, S.satLon, r);            /* satellite position vector, in the equatorial plane */
+  var v = Pvec.clone().sub(Svec);                /* line-of-sight vector */
+  var d = v.length();
+
+  var U = Svec.clone().normalize();              /* zenith */
+  var yAxis = new THREE.Vector3(0,1,0);
+  var E = new THREE.Vector3().crossVectors(U, yAxis);   /* east = U-hat x y-hat */
+  var degenerate = E.length() < 1e-6;
+  if (!degenerate) E.normalize();
+  var N = new THREE.Vector3().crossVectors(E, U).normalize();  /* north = E-hat x U-hat */
+
+  var vU = v.dot(U), vE = v.dot(E), vN = v.dot(N);
+  var el = Math.asin(Math.max(-1, Math.min(1, vU/d)))*R2D;
+  var az = (Math.atan2(vE, vN)*R2D + 360) % 360;
+  var gamma = Math.acos(Math.max(-1, Math.min(1, U.dot(Pvec.clone().normalize()))))*R2D;
+
+  var T = 2*Math.PI*Math.sqrt(Math.pow(r,3)/MU);
+  var drift = 360*(T_SIDEREAL/T - 1);            /* deg/day, positive = drifts east */
+  var delay = d/C_LIGHT*1000;                     /* ms, one way */
+  var lam0 = Math.acos(Math.min(1, RE/r))*R2D;    /* footprint half-angle (geocentric angle) */
+
+  R = {r:r, S:Svec, P:Pvec, v:v, d:d, U:U, E:E, N:N,
+       vU:vU, vE:vE, vN:vN, el:el, az:az, gamma:gamma,
+       T:T, drift:drift, delay:delay, lam0:lam0, visible:vU>0, degenerate:degenerate};
+  return R;
+}
+
+function fmtHMS(sec){
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.round(sec%60);
+  if (s === 60){ s = 0; m++; }
+  if (m === 60){ m = 0; h++; }
+  return h + "h" + (m<10?"0":"") + m + "m" + (s<10?"0":"") + s + "s";
+}
+function fmtNum(x, d){
+  return x.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/* ============ 3D update ============ */
+function update3D() {
+  var s = R.S.clone().multiplyScalar(SCALE);
+  var p = R.P.clone().multiplyScalar(SCALE);
+
+  station.position.copy(s);
+  satBody.position.copy(p);
+  satPanel.position.copy(p);
+  satPanel.lookAt(0,0,0);
+
+  lineOS.setEnds(new THREE.Vector3(0,0,0), s);
+  lineOP.setEnds(new THREE.Vector3(0,0,0), p);
+  lineSP.setEnds(s, p);
+  lineSP.material.color.setHex(R.visible ? 0xf0a63c : 0xef6a5e);
+  lineSP.material.opacity = R.visible ? 0.95 : 0.45;
+
+  var L = 0.55;
+  arrU.set2(s, R.U, L); arrU.visible = true;
+  if (!R.degenerate){
+    arrE.set2(s, R.E, L); arrN.set2(s, R.N, L);
+    arrE.visible = arrN.visible = true;
+    lblE.position.copy(s).add(R.E.clone().multiplyScalar(L+0.13));
+    lblN.position.copy(s).add(R.N.clone().multiplyScalar(L+0.13));
+    lblE.visible = lblN.visible = true;
+  } else {
+    arrE.visible = arrN.visible = lblE.visible = lblN.visible = false;
+  }
+  lblU.position.copy(s).add(R.U.clone().multiplyScalar(L+0.14));
+  lblSat.position.copy(p).add(new THREE.Vector3(0, 0.22, 0));
+  lblSta.position.copy(s).add(R.U.clone().multiplyScalar(-0.02))
+        .add(R.E.clone().multiplyScalar(0.18));
+
+  /* geostationary orbit ring */
+  var ringPts = [], i;
+  for (i=0;i<=180;i++){
+    var a = i/180*Math.PI*2;
+    ringPts.push(new THREE.Vector3(Math.cos(a)*R.r*SCALE, 0, Math.sin(a)*R.r*SCALE));
+  }
+  orbitRing.geometry.dispose();
+  orbitRing.geometry = new THREE.BufferGeometry().setFromPoints(ringPts);
+
+  /* footprint: a ground circle of geocentric angle lam0 centred on the sub-satellite point */
+  if (S.footprint){
+    var center = geo2vec(0, S.satLon, 1).normalize();
+    var tmp = Math.abs(center.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+    var u1 = new THREE.Vector3().crossVectors(center, tmp).normalize();
+    var u2 = new THREE.Vector3().crossVectors(center, u1).normalize();
+    var lam = R.lam0*D2R, fp = [];
+    for (i=0;i<=120;i++){
+      var t2 = i/120*Math.PI*2;
+      var pt = center.clone().multiplyScalar(Math.cos(lam))
+        .add(u1.clone().multiplyScalar(Math.sin(lam)*Math.cos(t2)))
+        .add(u2.clone().multiplyScalar(Math.sin(lam)*Math.sin(t2)));
+      fp.push(pt.multiplyScalar(1.004));
+    }
+    footprint.geometry.dispose();
+    footprint.geometry = new THREE.BufferGeometry().setFromPoints(fp);
+    footprint.visible = true;
+  } else footprint.visible = false;
+}
+
+/* ============ formula in the canvas corner ============ */
+function updateFormula() {
+  var box = $("formulaBox");
+  var v = R.v, d = R.d;
+  var rows = [];
+  rows.push('<div class="l"><span class="name">S (ground station)</span>('
+    + fmtNum(R.S.x,0) + ', ' + fmtNum(R.S.y,0) + ', ' + fmtNum(R.S.z,0) + ') km</div>');
+  rows.push('<div class="l"><span class="name">P (satellite)</span>('
+    + fmtNum(R.P.x,0) + ', ' + fmtNum(R.P.y,0) + ', ' + fmtNum(R.P.z,0) + ') km</div>');
+  rows.push('<div class="l"><span class="name">v = P − S</span>('
+    + fmtNum(v.x,0) + ', ' + fmtNum(v.y,0) + ', ' + fmtNum(v.z,0)
+    + ')　|v| = <b>' + fmtNum(d,0) + '</b> km</div>');
+  if (R.degenerate) {
+    rows.push('<div class="l"><span class="name bad">Ê = Û × ŷ</span>'
+      + '<span class="bad">≈ 0, station is at a pole, east is undefined</span></div>');
+  } else {
+    rows.push('<div class="l"><span class="name hx">Ê = Û × ŷ</span>('
+      + R.E.x.toFixed(3) + ', ' + R.E.y.toFixed(3) + ', ' + R.E.z.toFixed(3)
+      + ')　<span class="hx">N̂ = Ê × Û</span></div>');
+  }
+  rows.push('<div class="l"><span class="name hd">sin El = v·Û ⁄ |v|</span>'
+    + fmtNum(R.vU,0) + ' ⁄ ' + fmtNum(d,0) + ' = ' + (R.vU/d).toFixed(4)
+    + '　→ El = <b class="' + (R.visible ? "" : "bad") + '">' + R.el.toFixed(2) + '°</b></div>');
+  rows.push('<div class="l"><span class="name hd">Az = atan2(v·Ê, v·N̂)</span>atan2('
+    + fmtNum(R.vE,0) + ', ' + fmtNum(R.vN,0) + ') = <b>' + R.az.toFixed(2) + '°</b></div>');
+  box.innerHTML = rows.join("");
+}
+
+/* ============ sky plot ============ */
+var skyCanvas = $("cvSky"), sctx = skyCanvas.getContext("2d"), SW = 0;
+function resizeSky(){
+  var w = $("vpSky").clientWidth, h = $("vpSky").clientHeight;
+  if (!w || !h) return;
+  var dpr = Math.min(window.devicePixelRatio, 2);
+  skyCanvas.width = w*dpr; skyCanvas.height = h*dpr;
+  sctx.setTransform(dpr,0,0,dpr,0,0);
+  SW = w; drawSky();
+}
+function drawSky(){
+  if (!SW || !R.U) return;
+  var cx = SW/2, cy = SW/2, rad = SW*0.40;
+  sctx.clearRect(0,0,SW,SW);
+
+  /* concentric rings: elevation 0/30/60/90 */
+  sctx.strokeStyle = "rgba(61,81,112,.55)"; sctx.lineWidth = 1;
+  sctx.fillStyle = "rgba(147,164,192,.65)";
+  sctx.font = "11px ui-monospace, Menlo, monospace";
+  var rings = [0, 30, 60];
+  for (var i=0;i<rings.length;i++){
+    var rr = rad*(90-rings[i])/90;
+    sctx.beginPath(); sctx.arc(cx, cy, rr, 0, Math.PI*2); sctx.stroke();
+    sctx.fillText(rings[i] + "°", cx + 3, cy - rr + 12);
+  }
+  /* 10° mask-angle warning ring */
+  sctx.strokeStyle = "rgba(239,106,94,.5)";
+  sctx.setLineDash([4,4]);
+  sctx.beginPath(); sctx.arc(cx, cy, rad*80/90, 0, Math.PI*2); sctx.stroke();
+  sctx.setLineDash([]);
+
+  /* azimuth spokes */
+  sctx.strokeStyle = "rgba(61,81,112,.45)";
+  var dirs = ["N","E","S","W"];
+  for (var a=0;a<360;a+=30){
+    var th = (a-90)*D2R;
+    sctx.beginPath();
+    sctx.moveTo(cx + Math.cos(th)*rad*0.06, cy + Math.sin(th)*rad*0.06);
+    sctx.lineTo(cx + Math.cos(th)*rad, cy + Math.sin(th)*rad);
+    sctx.stroke();
+  }
+  sctx.fillStyle = "rgba(230,236,245,.8)";
+  sctx.font = "bold 13px ui-monospace, Menlo, monospace";
+  for (var k=0;k<4;k++){
+    var th2 = (k*90-90)*D2R;
+    sctx.fillText(dirs[k], cx + Math.cos(th2)*(rad+16) - 4, cy + Math.sin(th2)*(rad+16) + 5);
+  }
+
+  /* zenith */
+  sctx.fillStyle = "rgba(90,169,240,.9)";
+  sctx.beginPath(); sctx.arc(cx, cy, 2.5, 0, Math.PI*2); sctx.fill();
+
+  /* satellite point */
+  if (R.visible && !R.degenerate) {
+    var rr2 = rad*(90-R.el)/90;
+    var th3 = (R.az-90)*D2R;
+    var px = cx + Math.cos(th3)*rr2, py = cy + Math.sin(th3)*rr2;
+    sctx.strokeStyle = "rgba(240,166,60,.55)"; sctx.lineWidth = 1.4;
+    sctx.beginPath(); sctx.moveTo(cx,cy); sctx.lineTo(px,py); sctx.stroke();
+    sctx.fillStyle = "#f7c579";
+    sctx.beginPath(); sctx.arc(px, py, 6, 0, Math.PI*2); sctx.fill();
+    sctx.strokeStyle = "rgba(240,166,60,.85)"; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.arc(px, py, 11, 0, Math.PI*2); sctx.stroke();
+    sctx.fillStyle = "rgba(230,236,245,.92)";
+    sctx.font = "12px ui-monospace, Menlo, monospace";
+    sctx.fillText("El " + R.el.toFixed(1) + "°  Az " + R.az.toFixed(1) + "°", 12, SW-14);
+  } else {
+    sctx.fillStyle = "rgba(239,106,94,.9)";
+    sctx.font = "13px -apple-system,'PingFang SC',sans-serif";
+    sctx.fillText(R.degenerate ? "Pole: local east undefined" : "Satellite below horizon, not visible", 12, SW-14);
+  }
+}
+
+/* ============ readouts ============ */
+function updateDials(){
+  $("dEl").textContent = R.el.toFixed(2) + "°";
+  $("dElWrap").className = "dial " + (R.el < 0 ? "warn" : R.el < 10 ? "warn" : "ok");
+  $("dAz").textContent = R.degenerate ? "—"
+    : (R.el > 89.5 ? "directly overhead" : R.az.toFixed(2) + "°");
+  $("dRange").textContent = fmtNum(R.d, 0);
+  $("dGamma").textContent = R.gamma.toFixed(2) + "°";
+  $("dDelay").textContent = R.delay.toFixed(1) + " ms";
+  $("dPeriod").textContent = fmtHMS(R.T);
+  var dr = R.drift;
+  $("dDrift").textContent = Math.abs(dr) < 0.005 ? "≈ 0° (geostationary)"
+    : (dr > 0 ? "east " : "west ") + Math.abs(dr).toFixed(3) + "°";
+  $("dDriftWrap").className = "dial " + (Math.abs(dr) < 0.005 ? "ok" : "");
+}
+
+function refresh(){
+  compute();
+  update3D();
+  updateFormula();
+  updateDials();
+  drawSky();
+}
+
+/* ============ controls ============ */
+function fmtLat(v){ return Math.abs(v).toFixed(1) + "°" + (v>=0 ? "N" : "S"); }
+function fmtLon(v){
+  if (Math.abs(v) < 0.05) return "0.0°";
+  if (Math.abs(Math.abs(v)-180) < 0.05) return "180.0°";
+  return Math.abs(v).toFixed(1) + "°" + (v>=0 ? "E" : "W");
+}
+function bind(id, out, key, fmt){
+  var el = $(id);
+  el.addEventListener("input", function(){
+    S[key] = parseFloat(el.value);
+    $(out).textContent = fmt(S[key]);
+    refresh();
+  });
+  $(out).textContent = fmt(S[key]);
+}
+bind("sLat","oLat","lat", fmtLat);
+bind("sLon","oLon","lon", fmtLon);
+bind("sSatLon","oSatLon","satLon", fmtLon);
+bind("sAlt","oAlt","alt", function(v){ return fmtNum(v,0) + " km"; });
+
+Array.prototype.forEach.call(document.querySelectorAll(".seg button[data-lat]"), function(b){
+  b.addEventListener("click", function(){
+    S.lat = parseFloat(b.getAttribute("data-lat"));
+    S.lon = parseFloat(b.getAttribute("data-lon"));
+    $("sLat").value = S.lat; $("oLat").textContent = fmtLat(S.lat);
+    $("sLon").value = S.lon; $("oLon").textContent = fmtLon(S.lon);
+    Array.prototype.forEach.call(document.querySelectorAll(".seg button[data-lat]"), function(o){
+      o.setAttribute("aria-pressed", o===b ? "true":"false");
+    });
+    refresh();
+  });
+});
+$("btnGeo").addEventListener("click", function(){
+  S.alt = GEO_ALT;
+  $("sAlt").value = S.alt; $("oAlt").textContent = fmtNum(S.alt,0) + " km";
+  refresh();
+});
+$("cFootprint").addEventListener("change", function(){ S.footprint = this.checked; refresh(); });
+
+function resize3d(){
+  var w = wrap3d.clientWidth, h = wrap3d.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w,h,false);
+  cam.aspect = w/h; cam.updateProjectionMatrix();
+}
+window.addEventListener("resize", function(){ resize3d(); resizeSky(); });
+
+function tick(){ requestAnimationFrame(tick); renderer.render(scene, cam); }
+setTimeout(function(){ resize3d(); resizeSky(); refresh(); }, 0);
+resize3d(); resizeSky(); refresh(); tick();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualising the Plane Equation Ax + By + Cz + D = 0</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    #canvas-container { width: 100%; height: 100%; }
+    #ui {
+      position: absolute; top: 12px; left: 12px; width: 300px;
+      background: rgba(18,18,22,0.88); padding: 16px 18px; border-radius: 12px;
+      border: 1px solid #3a3a44; backdrop-filter: blur(8px);
+    }
+    h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #ddd; }
+    #eq-text { font-family: ui-monospace, monospace; color: #7fd4ff; margin: 0 0 14px; font-size: 15px; }
+    label { display: flex; align-items: center; gap: 8px; margin: 9px 0; font-size: 13px; }
+    label span.name { width: 92px; color: #ccc; }
+    input[type=range] { flex: 1; }
+    .val { min-width: 28px; text-align: right; color: #aaa; font-variant-numeric: tabular-nums; }
+    .hint {
+      font-size: 12px; color: #9aa; margin-top: 14px; line-height: 1.65;
+      border-top: 1px solid #333; padding-top: 10px;
+    }
+    .hint b { color: #ccc; font-weight: 600; }
+    .readout { margin-top: 14px; border-top: 1px solid #333; padding-top: 10px; font-size: 12.5px; }
+    .ro { display: flex; justify-content: space-between; gap: 10px; line-height: 1.9; }
+    .ro span { color: #9aa; }
+    .ro b { font-family: ui-monospace, monospace; color: #ffd76e; font-weight: 600; }
+  </style>
+<style>
+.backbar{
+  position:absolute;top:0;left:0;right:0;z-index:60;
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid #3a3a44;
+  background:rgba(17,17,17,.92);backdrop-filter:blur(6px);
+  font-size:13px;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:#9aa;text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:#eee;border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+#ui{top:56px !important}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="vectors.html">&larr; Vectors &amp; Space</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+  <div id="canvas-container"></div>
+  <div id="ui">
+    <h2>Plane equation:</h2>
+    <p id="eq-text">1x + 1y + 1z + 0 = 0</p>
+    <label>
+      <span class="name">A (normal X):</span>
+      <input id="slider-A" type="range" min="-5" max="5" step="0.1" value="1">
+      <span class="val" id="val-A">1</span>
+    </label>
+    <label>
+      <span class="name">B (normal Y):</span>
+      <input id="slider-B" type="range" min="-5" max="5" step="0.1" value="1">
+      <span class="val" id="val-B">1</span>
+    </label>
+    <label>
+      <span class="name">C (normal Z):</span>
+      <input id="slider-C" type="range" min="-5" max="5" step="0.1" value="1">
+      <span class="val" id="val-C">1</span>
+    </label>
+    <label>
+      <span class="name">D (offset):</span>
+      <input id="slider-D" type="range" min="-8" max="8" step="0.1" value="0">
+      <span class="val" id="val-D">0</span>
+    </label>
+    <div class="readout">
+      <div class="ro"><span>normal n</span><b id="ro-n">(1, 1, 1)</b></div>
+      <div class="ro"><span>|n|</span><b id="ro-len">1.73</b></div>
+      <div class="ro"><span>origin to plane &minus;D/|n|</span><b id="ro-dist">0.00</b></div>
+    </div>
+    <div class="hint">
+      <b>Two things dragging makes obvious:</b><br>
+      • Drag <b>A B C</b>: the plane turns, because you're changing the normal vector itself<br>
+      • Drag <b>D</b>: orientation doesn't move at all, the plane slides along its normal by &minus;D/|n|<br>
+      <br>
+      <b>Controls:</b><br>
+      • Left-click and drag: rotate the 3D view<br>
+      • Scroll wheel: zoom<br>
+      • Yellow arrow: normal vector n = (A,B,C)<br>
+      • Red/blue arrows: two directions in the plane, built from two cross products
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+/* Lightweight OrbitControls: API-compatible, avoids third-party CDN dependency */
+(function(){
+  if (typeof THREE === "undefined" || THREE.OrbitControls) return;
+  THREE.OrbitControls = function(object, dom){
+    var scope = this;
+    scope.object = object; scope.domElement = dom;
+    scope.target = new THREE.Vector3();
+    scope.enableDamping = false; scope.dampingFactor = 0.08;
+    scope.minDistance = 0.5; scope.maxDistance = 500;
+    var sph = new THREE.Spherical(), off = new THREE.Vector3();
+    off.copy(object.position).sub(scope.target);
+    sph.setFromVector3(off);
+    var tT = sph.theta, tP = sph.phi, tR = sph.radius;
+    var drag = false, lx = 0, ly = 0;
+    function down(e){ drag = true; lx = e.clientX; ly = e.clientY;
+      if (dom.setPointerCapture) { try { dom.setPointerCapture(e.pointerId); } catch(_){} } }
+    function move(e){
+      if (!drag) return;
+      tT -= (e.clientX - lx) * 0.006;
+      tP -= (e.clientY - ly) * 0.006;
+      tP = Math.max(0.05, Math.min(Math.PI - 0.05, tP));
+      lx = e.clientX; ly = e.clientY;
+    }
+    function up(){ drag = false; }
+    function wheel(e){
+      e.preventDefault();
+      tR *= (1 + Math.sign(e.deltaY) * 0.08);
+      tR = Math.max(scope.minDistance, Math.min(scope.maxDistance, tR));
+    }
+    dom.addEventListener("pointerdown", down);
+    dom.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    dom.addEventListener("wheel", wheel, {passive:false});
+    scope.update = function(){
+      var k = scope.enableDamping ? 0.18 : 1;
+      sph.theta  += (tT - sph.theta)  * k;
+      sph.phi    += (tP - sph.phi)    * k;
+      sph.radius += (tR - sph.radius) * k;
+      off.setFromSpherical(sph);
+      scope.object.position.copy(scope.target).add(off);
+      scope.object.lookAt(scope.target);
+    };
+    scope.update();
+  };
+})();
+</script>
+  <script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a1a);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(8, 8, 12);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const axesHelper = new THREE.AxesHelper(6);
+    scene.add(axesHelper);
+    const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
+    scene.add(gridHelper);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    const planeGeometry = new THREE.PlaneGeometry(8, 8, 10, 10);
+    const planeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0088ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.5,
+      wireframe: false
+    });
+    const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    scene.add(planeMesh);
+
+    const wireframeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
+    const wireframeMesh = new THREE.Mesh(planeGeometry, wireframeMaterial);
+    scene.add(wireframeMesh);
+
+    const arrowNormal = new THREE.ArrowHelper(new THREE.Vector3(1, 1, 1).normalize(), new THREE.Vector3(0,0,0), 3, 0xffff00, 0.4, 0.2);
+    scene.add(arrowNormal);
+
+    // origin -> closest point on plane: draw the number -D/|n|
+    const distLine = new THREE.Line(
+      new THREE.BufferGeometry().setAttribute("position",
+        new THREE.BufferAttribute(new Float32Array(6), 3)),
+      new THREE.LineDashedMaterial({ color: 0xffd76e, dashSize: 0.25, gapSize: 0.16 }));
+    scene.add(distLine);
+    const footDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 14, 14),
+      new THREE.MeshBasicMaterial({ color: 0xffd76e }));
+    scene.add(footDot);
+
+    const arrowInPlane1 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 2.4, 0xff3355, 0.28, 0.14);
+    const arrowInPlane2 = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 2.4, 0x3399ff, 0.28, 0.14);
+    scene.add(arrowInPlane1);
+    scene.add(arrowInPlane2);
+
+    function updateGeometry() {
+      const A = parseFloat(document.getElementById('slider-A').value);
+      const B = parseFloat(document.getElementById('slider-B').value);
+      const C = parseFloat(document.getElementById('slider-C').value);
+      const D = parseFloat(document.getElementById('slider-D').value);
+
+      document.getElementById('val-A').innerText = A;
+      document.getElementById('val-B').innerText = B;
+      document.getElementById('val-C').innerText = C;
+      document.getElementById('val-D').innerText = D;
+      document.getElementById('eq-text').innerText = `${A}x + ${B}y + ${C}z + ${D} = 0`;
+
+      const nVec = new THREE.Vector3(A, B, C);
+      const len = nVec.length();
+      if (len === 0) return;
+
+      const normal = nVec.clone().normalize();
+      const p0 = normal.clone().multiplyScalar(-D / len);
+
+      planeMesh.position.copy(p0);
+      wireframeMesh.position.copy(p0);
+
+      const defaultNormal = new THREE.Vector3(0, 0, 1);
+      const quaternion = new THREE.Quaternion().setFromUnitVectors(defaultNormal, normal);
+      planeMesh.quaternion.copy(quaternion);
+      wireframeMesh.quaternion.copy(quaternion);
+
+      arrowNormal.setDirection(normal);
+      arrowNormal.position.copy(p0);
+
+      const v1 = new THREE.Vector3();
+      if (Math.abs(normal.x) > 0.9) {
+        v1.set(-normal.y, normal.x, 0).normalize();
+      } else {
+        v1.set(0, -normal.z, normal.y).normalize();
+      }
+      const v2 = new THREE.Vector3().crossVectors(normal, v1).normalize();
+
+      arrowInPlane1.setDirection(v1);
+      arrowInPlane1.position.copy(p0);
+      arrowInPlane2.setDirection(v2);
+      arrowInPlane2.position.copy(p0);
+
+      // dashed distance line and foot of perpendicular
+      const dp = distLine.geometry.attributes.position;
+      dp.setXYZ(0, 0, 0, 0);
+      dp.setXYZ(1, p0.x, p0.y, p0.z);
+      dp.needsUpdate = true;
+      distLine.geometry.computeBoundingSphere();
+      distLine.computeLineDistances();
+      footDot.position.copy(p0);
+      const near0 = p0.length() < 0.02;
+      distLine.visible = !near0;
+      footDot.visible = !near0;
+
+      // readout
+      document.getElementById('ro-n').innerText =
+        `(${A.toFixed(1)}, ${B.toFixed(1)}, ${C.toFixed(1)})`;
+      document.getElementById('ro-len').innerText = len.toFixed(2);
+      document.getElementById('ro-dist').innerText = (-D / len).toFixed(2);
+    }
+
+    ['A', 'B', 'C', 'D'].forEach(param => {
+      document.getElementById(`slider-${param}`).addEventListener('input', updateGeometry);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    updateGeometry();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

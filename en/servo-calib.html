@@ -1,0 +1,405 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Servo Calibration · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="I opened up a servo, soldered a wire to the potentiometer's center tap, and fitted its readings to real angles with least squares." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			/* ── bilingual buttons ── */
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+
+			/* ── dark equation box ── */
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+
+			/* ── friendship-code dialog ── */
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+
+			/* ── language switch ── */
+			.langswitch { font-size: 0.9em; }
+		</style>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<!-- Header -->
+				<header id="header">
+					<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+					<nav>
+						<a href="#menu">Menu</a>
+					</nav>
+				</header>
+
+			<!-- Menu -->
+				<nav id="menu">
+					<ul class="links">
+						<li><a href="index.html">Home</a></li>
+						<li><a href="vectors.html">Vectors &amp; Space</a></li>
+						<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+						<li><a href="calculus.html">Change &amp; Gradients</a></li>
+						<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+						<li><a href="neural.html">Neural Networks</a></li>
+						<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+						<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+						<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+						<li><a href="../servo-calib.html" class="langswitch">中文版 &nbsp;Chinese</a></li>
+					</ul>
+				</nav>
+
+			<!-- Main -->
+				<div id="main" class="alt">
+					<section id="one">
+						<div class="inner">
+
+							<header class="major">
+								<h1>I opened up a servo and asked it where it was</h1>
+								<p>Servo Calibration · turning potentiometer readings into real angles<br />
+								The maths behind it → <a href="fitting.html">Fitting &amp; Least Squares</a></p>
+							</header>
+
+							<span class="image main"><img src="images/photo_teardown.jpg" alt="Servo with its back cover off, a white wire soldered to the potentiometer's center tap" /></span>
+
+							<h2>Why open it up at all</h2>
+
+							<p>A hobby servo runs <strong>open loop</strong>. You hand it a PWM pulse width, it turns to
+							wherever that is, and then it tells you nothing. Did it get there? Is something jamming it?
+							Do the gears have slop? From the outside you have no idea.</p>
+
+							<p>For a two-axis solar tracker that isn't good enough. I compute an azimuth and an elevation,
+							and I'd like to know whether the mount actually went there.</p>
+
+							<p>The thing is, the feedback has been sitting inside the servo the whole time. There's a
+							potentiometer in there that the driver board already uses for its own closed loop.
+							Solder one wire to its center tap, run it to an ADC, and suddenly the servo has an angle output.
+							That white wire in the photo is it. The cost is prying off the back cover and one
+							solder joint; the payoff is not having to buy servos with feedback built in.</p>
+
+							<hr class="major" />
+
+							<h2>Wiring</h2>
+							<span class="image main"><img src="images/fig0_wiring.png" alt="Wiring diagram: potentiometer center tap to ADC" /></span>
+
+							<p>The tap only gets <em>tapped</em> — I didn't cut any of the servo's original three wires,
+							so the driver board carries on exactly as before. The part that actually bites you is
+							which pin you pick:</p>
+
+							<div class="table-wrapper">
+								<table class="alt">
+									<thead>
+										<tr><th>Signal</th><th>Pin</th><th>Note</th></tr>
+									</thead>
+									<tbody>
+										<tr><td>AZ potentiometer tap</td><td>GPIO 32</td><td>ADC1_CH4</td></tr>
+										<tr><td>EL potentiometer tap</td><td>GPIO 33</td><td>ADC1_CH5</td></tr>
+										<tr><td>AZ servo PWM</td><td>GPIO 5</td><td>500–2400 µs</td></tr>
+										<tr><td>EL servo PWM</td><td>GPIO 16</td><td>same</td></tr>
+										<tr><td>OLED</td><td>GPIO 21 / 22</td><td>I²C SDA / SCL</td></tr>
+									</tbody>
+								</table>
+							</div>
+
+							<p><strong>The taps have to go on ADC1 (GPIO 32–39).</strong> On the ESP32, ADC2 shares
+							hardware with the WiFi radio — turn WiFi on and those readings simply stop working.
+							A solar tracker is going to want WiFi sooner or later, so using ADC2 is a landmine you
+							set for yourself. Two more: call <code>analogSetAttenuation(ADC_11db)</code> so the range
+							reaches about 3.3 V, and make sure the servo supply and the ESP32 <strong>share a ground</strong>,
+							or every reading drifts.</p>
+
+							<hr class="major" />
+
+							<h2>How I measured it</h2>
+							<p>Walk the servo through its full range in 2° steps. At every stop:</p>
+							<ul>
+								<li>wait <strong>350 ms</strong> for the mechanism to settle — I found this number by trial;
+								anything shorter and you catch it still moving</li>
+								<li>take <strong>64 samples</strong> 2 ms apart, record mean, min, max and standard deviation</li>
+								<li>sweep up, then <strong>sweep back down</strong> — this second pass is the whole point,
+								and I'll come back to why</li>
+							</ul>
+							<p>AZ covers 60°–180° in 61 points, EL covers 100°–170° in 36. Both directions, 194 rows in all.</p>
+
+							<span class="image main"><img src="images/photo_bench.jpg" alt="Soldering the green wire onto the servo's potentiometer center tap" /></span>
+							<p>The whole modification is this one wire: off the potentiometer's center tap, over to an ADC.
+							The servo's own three wires stay untouched and its driver board keeps closing its loop —
+							I'm just eavesdropping on the feedback it was already using.</p>
+
+							<hr class="major" />
+
+							<h2>What the data says</h2>
+
+							<h3>One · It's nearly linear. Nearly isn't enough.</h3>
+							<span class="image main"><img src="images/fig1_transfer.png" alt="Transfer curves for the AZ and EL axes" /></span>
+							<p>Sensitivity comes out at 18.2 counts/degree on AZ and 19.0 on EL, so one ADC count is
+							about 0.055°. Resolution is not the problem. But look at how the measured curve sits against
+							the dashed line — that's just the two endpoints joined up.</p>
+
+							<span class="image main"><img src="images/fig2_deviation.png" alt="Deviation from the ideal straight line" /></span>
+							<p>Plot the difference on its own and it's a clean bow: <strong>AZ is off by 7° in the middle</strong>,
+							EL by 4°. Calibrate from the two ends and interpolate linearly, and that's the error you're
+							carrying around. Which is the reason to fit a curve at all.</p>
+
+							<h3>Two · How many orders are worth it</h3>
+							<span class="image main"><img src="images/fig3_residual.png" alt="Residuals for first, second and third order fits" /></span>
+
+							<div class="table-wrapper">
+								<table class="alt">
+									<thead>
+										<tr><th>Polynomial order</th><th>AZ RMS</th><th>EL RMS</th></tr>
+									</thead>
+									<tbody>
+										<tr><td>1st (a straight line)</td><td>1.910°</td><td>1.170°</td></tr>
+										<tr><td>2nd</td><td>0.929°</td><td>0.594°</td></tr>
+										<tr><td>3rd</td><td>0.621°</td><td>0.510°</td></tr>
+										<tr><td>4th</td><td>0.610°</td><td>0.501°</td></tr>
+									</tbody>
+								</table>
+							</div>
+
+							<p>First to second halves the error. Second to third buys another 30%.
+							<strong>Third to fourth does essentially nothing.</strong> That's the model telling you it's done —
+							past this point you're just fitting noise. So: third order.</p>
+
+							<h3>Three · What's actually holding us back</h3>
+							<span class="image main"><img src="images/fig4_budget.png" alt="Error budget bar chart" /></span>
+
+							<p>This chart is the most useful thing that came out of the whole experiment.
+							After averaging 64 samples the measurement noise floor sits at <strong>0.15°</strong>,
+							while the third-order residual is 0.62° — four times larger.
+							So the leftover error isn't that I can't measure precisely enough;
+							<em>it's that the curve won't fit any better than that.</em></p>
+
+							<p>And then look higher up the chart: <strong>mechanical backlash, 2.07°</strong>.
+							Three times the fitting residual. Same commanded angle, approached from opposite directions,
+							and the potentiometer reads about 38 counts apart. That's gear slop and friction.
+							No amount of maths buys it back.</p>
+
+							<blockquote>Going from 2nd order to 3rd takes the error from 0.93° to 0.62°. I get 0.31°.<br />
+							Adding one line to the control loop — always approach the target from the same direction —
+							gets me 2°.<br />
+							<strong>Raising the order fiddles with decimal places. Killing the backlash is the real fight.</strong></blockquote>
+
+							<p>I only get to say that because I swept in both directions. Sweep one way and the backlash
+							hides inside the residual, and you'd conclude your model isn't good enough and go add orders
+							to it — which does nothing. I nearly did exactly that.</p>
+
+							<hr class="major" />
+
+							<h2>The fit</h2>
+							<p>Average the two sweep directions to cancel the backlash offset, then fit
+							<em>ADC → angle</em> (in use you read a count and want an angle back, so the ADC value is the
+							independent variable, not the angle). Straight into the firmware:</p>
+
+<pre><code>// AZ axis: ADC → degrees, 3rd order, RMS 0.621°
+float azRawToDeg(int raw) {
+  float r  = (float)raw;
+  float r2 = r * r;
+  float r3 = r2 * r;
+  return -3.145869e-09f * r3 + 1.844709e-05f * r2
+       +  2.311168e-02f * r  + 5.814704e+00f;
+}
+
+// EL axis: ADC → degrees, 3rd order, RMS 0.510°
+float elRawToDeg(int raw) {
+  float r  = (float)raw;
+  float r2 = r * r;
+  float r3 = r2 * r;
+  return -5.985777e-09f * r3 + 4.105006e-05f * r2
+       -  3.685087e-02f * r  + 5.706100e+01f;
+}</code></pre>
+
+							<p>Notice the coefficients span eight orders of magnitude — the cubic term is around 10⁻⁹.
+							<code>float</code> still copes on an ESP32, but if you went higher order or wider range
+							you'd want to center the ADC readings before fitting, or the numerics get ugly.</p>
+
+							<hr class="major" />
+
+							<h2>What if I used a neural network instead</h2>
+							<p>Same calibration data. On one side, least squares solves for three coefficients in one shot.
+							On the other, a small 1-12-12-1 network trains by gradient descent. How close do they land?</p>
+
+							<span class="image main"><img src="images/fig5_ls_vs_nn.png" alt="Least squares compared with a small neural network" /></span>
+
+							<p>Least squares: <strong>0.621°</strong>. The network: <strong>0.615°</strong> — after thirty
+							thousand epochs. Marginally better, at enormous cost. Least squares solves a linear system;
+							you could run it on the ESP32 itself.</p>
+
+							<p>Which isn't an argument against neural networks. It's an argument about knowing what you know:
+							<strong>when you already know the shape of the curve, writing that shape into the model beats
+							letting a network guess it.</strong> This curve is a potentiometer's voltage divider response.
+							It was always going to be low-order and smooth, and three coefficients describe it fine.
+							Networks earn their keep when you <em>can't</em> say what the shape is.</p>
+
+							<p>One more thing worth noticing: both sit stuck around 0.6°. They're hitting the same ceiling —
+							the fingerprint that 2° of mechanical backlash leaves in the data.
+							<em>You can't change the model to fix a mechanical problem.</em></p>
+
+							<p>Worked through in → <a href="fitting.html">Fitting &amp; Least Squares</a>　·　<a href="neural.html">Neural Networks</a></p>
+
+							<hr class="major" />
+
+							<h2>The actual wiring, and the files</h2>
+							<span class="image main"><img src="images/photo_wiring.jpg" alt="The real wiring on the ESP32 expansion board, green wires are the potentiometer taps" /></span>
+							<p>The two green wires are the potentiometer taps coming out of the servos. And here's a trap
+							worth flagging: <strong>the silkscreen numbers on the board are not GPIO numbers.</strong>
+							In the photo the taps are plugged into the header labelled H16 / H17, while the code says
+							<code>POT_AZ = 32</code> and <code>POT_EL = 33</code>. Expansion boards number their own
+							connectors and there's a mapping table in between. Swap boards and the same H16 might land
+							somewhere else entirely. Reading a silkscreen number straight into your code is the most
+							popular way to lose an afternoon — check the manual first.</p>
+
+							<ul class="actions">
+								<li><a href="#" class="button" data-gated="../assets/data/sweep.csv">Calibration data<br /><span class="btn-en">sweep.csv</span></a></li>
+								<li><a href="#" class="button" data-gated="../assets/data/sweep_fit.py">Analysis script<br /><span class="btn-en">sweep_fit.py</span></a></li>
+								<li><a href="solar-tracker.html" class="button primary">Next: making it move<br /><span class="btn-en">That First Twitch &rarr;</span></a></li>
+							</ul>
+
+							<!-- friendship code dialog -->
+							<div id="gate" class="gate" role="dialog" aria-modal="true"
+								 aria-labelledby="gateTitle" hidden>
+								<div class="gate-card">
+									<h3 id="gateTitle">Friendship code, please</h3>
+									<p class="gate-en">请输入友情码</p>
+									<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+									<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+									<input type="text" id="gateInput" autocomplete="off" spellcheck="false"
+										   aria-label="friendship code" />
+									<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+									<div class="gate-actions">
+										<button type="button" class="button primary small" id="gateOk">Enter</button>
+										<button type="button" class="button small" id="gateCancel">Cancel</button>
+									</div>
+								</div>
+							</div>
+
+						</div>
+					</section>
+				</div>
+
+			<!-- Footer -->
+				<footer id="footer">
+					<div class="inner">
+						<ul class="icons">
+							<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+							<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+						</ul>
+						<ul class="copyright">
+							<li>&copy; Mathematics You Can Turn</li>
+							<li>Camille Zhang · St. Catherine International School</li>
+							<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+						</ul>
+					</div>
+				</footer>
+
+		</div>
+
+		<!-- Scripts -->
+			<script src="../assets/js/jquery.min.js"></script>
+			<script src="../assets/js/jquery.scrolly.min.js"></script>
+			<script src="../assets/js/jquery.scrollex.min.js"></script>
+			<script src="../assets/js/browser.min.js"></script>
+			<script src="../assets/js/breakpoints.min.js"></script>
+			<script src="../assets/js/util.js"></script>
+			<script src="../assets/js/main.js"></script>
+
+			<script>
+			(function () {
+				/* The friendship code lives on the line below — change it if you like.
+				   It is a polite door, not a lock: the code is visible in the page source. */
+				var CODE = "poincare";
+				var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+
+				var gate = document.getElementById("gate");
+				if (!gate) return;
+				var input  = document.getElementById("gateInput");
+				var errMsg = document.getElementById("gateErr");
+				var okBtn  = document.getElementById("gateOk");
+				var cancel = document.getElementById("gateCancel");
+				var pending = null, passed = false, lastFocus = null;
+
+				function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+				function accepted(v){
+					var n = norm(v);
+					if (n === norm(CODE)) return true;
+					for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+					return false;
+				}
+				function grab(url){
+					var a=document.createElement("a");
+					a.href=url; a.download=url.split("/").pop();
+					document.body.appendChild(a); a.click(); document.body.removeChild(a);
+				}
+				function open_(){
+					lastFocus=document.activeElement;
+					gate.hidden=false; errMsg.hidden=true; input.value="";
+					setTimeout(function(){ input.focus(); },30);
+				}
+				function close_(){
+					gate.hidden=true; pending=null;
+					if(lastFocus&&lastFocus.focus) lastFocus.focus();
+				}
+				function submit(){
+					if(accepted(input.value)){
+						passed=true; var url=pending; close_(); if(url) grab(url);
+					}else{ errMsg.hidden=false; input.select(); }
+				}
+				Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+					a.addEventListener("click", function(e){
+						e.preventDefault();
+						var url=a.getAttribute("data-gated");
+						if(passed){ grab(url); return; }
+						pending=url; open_();
+					});
+				});
+				okBtn.addEventListener("click", submit);
+				cancel.addEventListener("click", close_);
+				input.addEventListener("keydown", function(e){
+					if(e.key==="Enter"){ e.preventDefault(); submit(); }
+				});
+				document.addEventListener("keydown", function(e){
+					if(e.key==="Escape" && !gate.hidden) close_();
+				});
+				gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+			})();
+			</script>
+
+	</body>
+</html>

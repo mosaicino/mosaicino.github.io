@@ -1,0 +1,337 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Fractals &amp; Dimension · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="Dimension isn't always an integer. Area can be squeezed to nothing while every direction survives. Both come down to measuring a set with a ruler." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept h3 .en { font-size: 0.62em; opacity: 0.5; font-weight: 400; letter-spacing: 0.04em; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 2rem 0; }
+			.demo {
+				display: block; text-decoration: none; border-radius: 4px;
+				padding: 1.4rem 1.5rem 1.5rem; color: #e6ecf5;
+				background: linear-gradient(160deg, #1b2b47 0%, #0f1826 100%);
+				border: 1px solid #2a3c5e; transition: transform .18s ease, border-color .18s ease;
+			}
+			.demo:hover { transform: translateY(-3px); border-color: #b388ff; }
+			.demo .tag {
+				font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+				color: #f0a63c; display: block; margin-bottom: 0.5rem;
+			}
+			.demo strong { display: block; font-size: 1.12em; color: #fff; margin-bottom: 0.45rem; }
+			.demo span.d { display: block; font-size: 0.86em; color: #93a4c0; line-height: 1.7; }
+			.demo .go { display: block; margin-top: 0.9rem; font-size: 0.82em; color: #8fe3ed; }
+			.ladder { border-left: 4px solid #f0a63c; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.ladder h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.ladder p { margin: 0; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Fractals &amp; Dimension</h1>
+							<p>A line is one-dimensional, a sheet of paper is two. So how many dimensions does a
+							snowflake have?</p>
+						</header>
+
+						<span class="image main"><img src="images/frac_hero.jpg" alt="A coastline-shaped Koch curve, with a hollow Sierpinski tetrahedron in the distance" /></span>
+
+						<p>There are actually two fractals in the image above: the jagged, coastline-like outline
+						is the <strong>Koch curve</strong>, and the hollow pyramid in the distance is a
+						<strong>Sierpinski tetrahedron</strong> — each step splits a tetrahedron into four smaller
+						ones at its corners, hollows out the middle, and repeats forever.</p>
+
+						<p>Their dimensions are $1.262$ and $2$. The Koch curve is stuck between one dimension and
+						two; the Sierpinski tetrahedron is actually the exception — even though it's riddled with
+						holes and its volume tends to zero, its self-similar dimension works out to
+						<strong>exactly integer 2</strong>. Together these two facts make a point: dimension isn't
+						"a fraction whenever something looks complicated" — you have to sit down and compute it.</p>
+
+						<hr class="major" />
+
+						<h2>Dimension: how many copies after zooming in</h2>
+
+						<p>The word "dimension" gets used pretty loosely day to day — up, down, left, right,
+						forward, back, three directions, three dimensions. But that story gets stuck the moment you
+						hit the Koch curve: it's drawn on a flat sheet of paper, it's rough everywhere, its length
+						is infinite while its area is zero. Calling it one-dimensional is too little; calling it
+						two is too much.</p>
+
+						<p>Ask the question a different way and it clears right up:
+						<strong>zoom in on the shape by a factor of $s$ — how many copies of itself does it become?</strong></p>
+
+						<span class="image main"><img src="images/frac_dim.png" alt="Self-similar dimension: zooming by s gives N copies, D = log N / log s" /></span>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#6ed6a0">
+							$N=s^{D}\quad\Longrightarrow\quad D=\dfrac{\log N}{\log s}$
+						</div>
+
+						<p>Zoom a line segment by 3 and you get 3 copies, $D=1$; zoom a square by 3 and you get 9
+						copies, $D=2$ — integer dimension is just a special case of this formula. Zoom the Koch
+						curve by 3 and you get 4 copies, $D=\log_3 4\approx1.262$ — <strong>stuck between one
+						dimension and two</strong>.</p>
+
+						<div class="ladder">
+							<h3>What this number is actually saying</h3>
+							<p>$1.262$ means: it takes up more "room" than a straight line, but still doesn't fill
+							a plane. Dimension here stops meaning "how many directions" and becomes
+							<strong>a scale for measuring roughness</strong> — coastlines, blood vessels,
+							lightning bolts, stock price charts can all be measured with it.</p>
+						</div>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-fractal.html" target="_blank" rel="noopener">
+								<span class="tag">Core</span>
+								<strong>Hybrid Fractal: Koch &times; Sierpinski Triangle</strong>
+								<span class="d">This demo uses the <strong>triangle</strong> version of Sierpinski
+								(dimension $\log_2 3\approx1.585$) — a different construction from the tetrahedron
+								in the cover image above, but the same idea. Two sliders control the recursion
+								depth of each fractal independently; watch the turtle draw it stroke by stroke, or
+								jump straight to the result. Each extra level multiplies the number of primitives —
+								the cost of recursion, made visible.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<hr class="major" />
+
+						<h2>A second thread: measure</h2>
+
+						<p>Dimension asks "how rough is it." <strong>Measure</strong> asks a more basic question:
+						<em>how big is this set?</em> Length, area, volume, probability — all measures.</p>
+
+						<p>Sounds mundane, but it leads somewhere deeply counterintuitive. The construction below
+						is called a <strong>Perron tree</strong>: slice a triangle into $2^n$ thin strips, then
+						shift them so they overlap each other.</p>
+
+						<div class="eqbox">
+							<span class="lbl">Two things happen at once</span><br />
+							<strong>The area can be squeezed to any size you like</strong> — the overlap eats away
+							at the union's area<br />
+							<strong>Yet not a single direction is lost</strong> — every strip is only translated,
+							its orientation never changes
+						</div>
+
+						<p>So you end up with a set whose area is almost zero, yet which contains every possible
+						direction. This is exactly the heart of the <strong>Kakeya problem</strong>: a needle
+						spinning through a full rotation in the plane can sweep out an area as small as you like.</p>
+
+						<div class="demos">
+							<a class="demo" href="demo-perron.html" target="_blank" rel="noopener">
+								<span class="tag">Measure</span>
+								<strong>Perron Tree &middot; Area &amp; Direction</strong>
+								<span class="d">Four panels: the original triangle coloured by direction, the tree
+								after shifting, area falling as the level increases, and a direction spectrum that
+								stays identical before and after. Drag the overlap coefficient $\alpha$ and watch
+								the blue line drop while the red line doesn't budge.</span>
+								<span class="go">Open demo →</span>
+							</a>
+							<a class="demo" href="demo-perron-anim.html" target="_blank" rel="noopener">
+								<span class="tag">Measure</span>
+								<strong>Area Is Generated Only at the Instant of Turning</strong>
+								<span class="d">Watching close to the tree and watching from far away are two
+								different stories. As the needle travels along the tree it sweeps almost no area at
+								all — the cost is only paid at the instant it turns a corner.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<div class="ladder" style="border-left-color:#3ec8d8">
+							<h3>Where the two threads converge</h3>
+							<p>How does the Perron tree's union area actually get computed? Draw every small
+							triangle onto an offscreen canvas and count what fraction of pixels got coloured.
+							<strong>That's exactly the same idea as box-counting to estimate a fractal
+							dimension</strong> — take a ruler with markings, measure with it, and watch how the
+							reading changes as the markings get finer. Measure and dimension, at bottom, are just
+							two different ways of asking "how do you measure a set with a ruler."</p>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Four ideas</h2>
+
+						<div class="concept">
+							<h3>Self-Similarity</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Zoom in on a piece and it looks the same as the whole.</dd>
+								<dt>How to build one</dt>
+								<dd>Write one rule, then apply it to itself over and over. The Koch curve's rule
+								is a single sentence: push the middle third of every segment out into a point.
+								Each extra level of recursion adds one more layer of detail.</dd>
+								<dt>Where it sits</dt>
+								<dd>Strictly self-similar fractals (Koch, Sierpinski) can be described by an
+								<strong>iterated function system</strong> — every step is a matrix transformation
+								plus a translation, exactly the same machinery from the
+								<a href="matrix.html">matrices section</a>, applied again and again.</dd>
+								<dt>Approximate self-similarity</dt>
+								<dd class="zero">Fractals in nature (coastlines, clouds, tree branches) are only
+								self-similar in a statistical sense — zoomed in, they "resemble" but don't
+								"equal" the whole.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>Fractal Dimension</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$D=\dfrac{\log N}{\log s}$ — zoom by $s$, get $N$ copies of itself.</dd>
+								<dt>What it measures</dt>
+								<dd>Roughness, and the capacity to fill space. The closer $D$ gets to 2, the more
+								this curve "wants" to fill the plane.</dd>
+								<dt>Measuring a real object</dt>
+								<dd><strong>Box-counting</strong>: cover the shape with a grid of side length
+								$\varepsilon$, count how many boxes $N(\varepsilon)$ are needed, and look at the
+								slope of $\log N$ against $\log(1/\varepsilon)$. Britain's coastline comes out
+								around $1.25$, Norway's fjords around $1.52$.</dd>
+								<dt>Why a shorter ruler gives a longer coastline</dt>
+								<dd class="zero">Because $D>1$. The measured length diverges as the ruler shrinks,
+								so "how long is the coastline" doesn't actually have a fixed answer to begin with.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Measure</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>A rule assigning a "size" to a set. Length, area, volume, and probability are
+								all measures.</dd>
+								<dt>Basic requirements</dt>
+								<dd>Non-negative; the empty set has measure zero; disjoint sets can have their
+								sizes added together. Sounds mundane, but that last rule is exactly what makes the
+								concept of "area" stand on solid ground.</dd>
+								<dt>Where it sits</dt>
+								<dd>Integration is built on top of measure — the $dx$ in "add up $f\,dx$" from the
+								<a href="calculus.html">calculus section</a> is, strictly speaking, a measure.</dd>
+								<dt>Measure-zero sets</dt>
+								<dd class="zero">Sets with zero area but infinitely many points. This is exactly
+								what a Perron tree approaches: <strong>it holds almost nothing, yet holds every
+								direction</strong>.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#b388ff">
+							<h3>Recursion</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>A function that calls itself, until it hits a base case and returns.</dd>
+								<dt>Its role in fractals</dt>
+								<dd>A fractal's definition is naturally recursive, so the code stays remarkably
+								short. The core of the image above is barely a dozen lines —
+								<strong>the complexity lives in the picture, not the code</strong>.</dd>
+								<dt>The cost</dt>
+								<dd>The number of primitives grows exponentially with depth. Each extra level
+								multiplies the Koch curve's segment count by 4, and the Sierpinski triangle's by 3.
+								Push the level all the way up in the demo and the browser visibly struggles.</dd>
+								<dt>Getting the base case wrong</dt>
+								<dd class="zero">Infinite recursion, stack overflow. The single most common mistake
+								when writing fractal code.</dd>
+							</dl>
+						</div>
+
+						<hr class="major" />
+
+						<h2>One sentence</h2>
+
+						<blockquote>Integer dimension is the exception, not the rule.<br />
+						<strong>Almost nothing in nature is smooth — clouds aren't spheres, mountains aren't cones,
+						coastlines aren't circular arcs.</strong><br />
+						What fractal geometry does is find a usable ruler for all this "irregularity."</blockquote>
+
+						<ul class="actions">
+							<li><a href="calculus.html" class="button">&larr; Previous: Change &amp; Gradients<br /><span class="btn-en">Change &amp; Gradients</span></a></li>
+							<li><a href="index.html" class="button primary">Back to Home · All Eight Sections<br /><span class="btn-en">All eight</span></a></li>
+						</ul>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+	</body>
+</html>

@@ -1,0 +1,497 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Change &amp; Gradients · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="The derivative is the limit of a slope, the differential is the best straight-line approximation, the integral adds change back up. Three questions, one thread." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept h3 .en { font-size: 0.62em; opacity: 0.5; font-weight: 400; letter-spacing: 0.04em; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 2rem 0; }
+			.demo {
+				display: block; text-decoration: none; border-radius: 4px;
+				padding: 1.4rem 1.5rem 1.5rem; color: #e6ecf5;
+				background: linear-gradient(160deg, #1b2b47 0%, #0f1826 100%);
+				border: 1px solid #2a3c5e; transition: transform .18s ease, border-color .18s ease;
+			}
+			.demo:hover { transform: translateY(-3px); border-color: #b388ff; }
+			.demo .tag {
+				font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+				color: #f0a63c; display: block; margin-bottom: 0.5rem;
+			}
+			.demo strong { display: block; font-size: 1.12em; color: #fff; margin-bottom: 0.45rem; }
+			.demo span.d { display: block; font-size: 0.86em; color: #93a4c0; line-height: 1.7; }
+			.demo .go { display: block; margin-top: 0.9rem; font-size: 0.82em; color: #8fe3ed; }
+			.ladder { border-left: 4px solid #f0a63c; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.ladder h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.ladder p { margin: 0; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Change &amp; Gradients</h1>
+							<p>The derivative is the limit of a slope, the differential is the best straight-line
+							approximation, the integral adds change back up.<br />
+							Three questions that turn out to be one.</p>
+						</header>
+
+						<h2>First, three words to keep straight</h2>
+
+						<p>Derivative, differential, integral get taught in school as three sets of rules to
+						memorise. But each one is really answering a very specific question:</p>
+
+						<div class="eqbox">
+							<span class="lbl">Three questions</span><br />
+							<strong>Derivative</strong>: how <em>fast</em> is it changing right now?　　　→　a number, the slope of the tangent<br />
+							<strong>Differential</strong>: step forward a little — <em>roughly</em> how much does it change?　→　an approximation, $dy=f'(x)\,dx$<br />
+							<strong>Integral</strong>: <em>add up</em> all these changes — what's the total?　→　an area
+						</div>
+
+						<p>Their relationship: the derivative breaks a function down into its instantaneous rate of
+						change; the integral puts the instantaneous rates back together. The differential is the
+						bridge between them — it translates "rate of change" into "how much actually changed."</p>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-calculus3d.html" target="_blank" rel="noopener">
+								<span class="tag">Core</span>
+								<strong>Tangent &middot; Small Step &middot; Solid Bar</strong>
+								<span class="d">One 3D scene holds all three at once: the gold tangent is the
+								derivative, the red step is the differential, the violet bars are the integral.
+								Drag $x$ and watch them move together; change the number of slices $n$ and watch
+								the bars converge on the true area. The blue curve is the antiderivative $F(x)$.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Derivative: not a slope, the limit of a slope</h2>
+
+						<span class="image main"><img src="images/calc1_secant.png" alt="Secant slope converging to the tangent slope as h approaches zero" /></span>
+
+						<p>Take a point $P$ on a curve, then another point $Q$ nearby — the slope of the line
+						through them is easy, that's just a <strong>secant line</strong>, arithmetic from middle
+						school.</p>
+
+						<p>The problem is "the slope right at this instant." When $Q$ merges with $P$, you get
+						$\frac{0}{0}$, which means nothing. So the derivative doesn't ask for that value directly —
+						it asks: <strong>as $Q$ slides toward $P$, does the secant's slope converge to some
+						definite number?</strong></p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#6ed6a0">
+							$f'(x_0)=\lim_{h\to0}\dfrac{f(x_0+h)-f(x_0)}{h}$
+						</div>
+
+						<p>The right-hand plot is exactly this limiting process: the x-axis is $h$, getting smaller
+						to the right, the y-axis is the corresponding secant slope. $h$ hasn't reached zero yet,
+						but the slope is already homing in on $0.80$. <strong>The derivative is "where it's
+						heading," not "where it landed."</strong></p>
+
+						<hr class="major" />
+
+						<h2>Differential: the best straight line</h2>
+
+						<p>Once you know the slope, you can use it to approximate. Near $x_0$, replace the curve
+						with its tangent line:</p>
+
+						<div class="eqbox" style="text-align:center">
+							$f(x_0+dx)\approx f(x_0)+\underbrace{f'(x_0)\,dx}_{dy}$
+						</div>
+
+						<p>That small red step in the demo is exactly this: walk $dx$ sideways, rise $dy$. Drag
+						$dx$ larger and you'll see the tip of the step pull away from the curve; drag it smaller
+						and the two hug each other.</p>
+
+						<div class="ladder">
+							<h3>Why it deserves its own name</h3>
+							<p>Because almost every practical calculation leans on it. Error propagation, Newton's
+							method, every step of optimisation, every update in neural network backpropagation —
+							all of them are "at the current point, replace the curve with a line, take one small
+							step." <strong>The differential is the licence to treat a nonlinear problem as linear,
+							temporarily.</strong></p>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Integration and the fundamental theorem</h2>
+
+						<span class="image main"><img src="images/calc2_ftc.png" alt="The derivative of the area function is exactly the original function" /></span>
+
+						<p>Integration adds up infinitely many pieces of "$f(x)\cdot dx$." Those violet bars in
+						the demo are exactly these pieces — turn the slice count $n$ up, the bars get thinner, and
+						their sum gets closer to the true area under the curve.</p>
+
+						<p>The key step is on the right. Treat "the area from $a$ to $x$" as a new function $F(x)$,
+						and ask what its derivative is — nudge $x$ forward by $dx$, and the area gains a thin
+						strip, height $f(x)$, width $dx$. So</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#f0a63c">
+							$\dfrac{dF}{dx}=\dfrac{f(x)\,dx}{dx}=f(x)$
+						</div>
+
+						<p>This is the <strong>fundamental theorem of calculus</strong>: the derivative of the area
+						function is exactly the original curve. Integration and differentiation are inverse
+						operations of each other — this one sentence turns "compute an area," a genuinely hard
+						problem, into "find a function whose derivative is $f$," a comparatively tractable one.</p>
+
+						<hr class="major" />
+
+						<h2>Four ideas</h2>
+
+						<div class="concept">
+							<h3>Limit</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>Not "where did it land," but "where is it heading."</dd>
+								<dt>Why it has to exist</dt>
+								<dd>Because "the speed right now" is itself a kind of paradox: at any single
+								instant, an object hasn't moved at all. The limit sidesteps the paradox — it
+								doesn't look at that one point, it looks at the process of approaching it.</dd>
+								<dt>Where it sits</dt>
+								<dd>Derivatives, integrals, continuity, series — all of calculus rests on this.</dd>
+								<dt>When it doesn't exist</dt>
+								<dd class="zero">The function isn't differentiable there. At a sharp corner, for
+								instance, the secant slopes from the left and right converge to two different
+								numbers.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Derivative</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$f'(x)$, the limit of the secant slope as $h\to0$.</dd>
+								<dt>What it measures</dt>
+								<dd>How fast something is changing. The derivative of position is velocity, the
+								derivative of velocity is acceleration.</dd>
+								<dt>Where it sits</dt>
+								<dd>For a multivariable function, every direction has its own derivative, and
+								they're packaged together into the <strong>gradient</strong>. The gradient points
+								the direction of steepest ascent, so "walk along the negative gradient" is going
+								downhill — the starting point of every optimisation algorithm.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">A horizontal tangent: a maximum, a minimum, or an inflection
+								point. Least squares is solved by exactly this — "set the derivative to zero."</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#ef6a5e">
+							<h3>Chain Rule</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\dfrac{dz}{dx}=\dfrac{dz}{dy}\cdot\dfrac{dy}{dx}$ — derivatives multiply
+								through nested layers.</dd>
+								<dt>What it measures</dt>
+								<dd>How an influence propagates down a chain. Move $x$ a little, $y$ follows,
+								$z$ follows $y$ — the total effect is the product of each layer's amplification
+								factor.</dd>
+								<dt>Where it sits</dt>
+								<dd>It's <strong>the entirety of backpropagation</strong>. A network with dozens of
+								layers, asking how much some weight influences the final error, is just running
+								this chain from back to front.</dd>
+								<dt>When one link is zero</dt>
+								<dd class="zero">The whole chain breaks, the gradient can't get back through — this
+								is vanishing gradients in deep networks.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>Integral</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\int_a^b f(x)\,dx$, the limit of summing infinitely many $f\cdot dx$ pieces.</dd>
+								<dt>What it measures</dt>
+								<dd>An accumulated quantity. Integrate velocity, get distance; integrate power,
+								get energy; integrate a probability density, get a probability.</dd>
+								<dt>Where it sits</dt>
+								<dd>Inverse of differentiation (the fundamental theorem). Multiple integrals give
+								volume; surface integrals give flux — the electric flux
+								$\Phi=\mathbf E\cdot\mathbf A$ from <a href="vectors.html">the vectors page</a> is
+								exactly a surface integral simplified for a uniform field.</dd>
+								<dt>When there's no closed form</dt>
+								<dd class="zero">The overwhelming majority of integrals have no elementary
+								antiderivative. That's when you turn to numerical integration — essentially those
+								same bars in the demo, just cut finer and weighted more cleverly.</dd>
+							</dl>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Where it shows up elsewhere on this site</h2>
+
+						<div class="ladder" style="border-left-color:#b388ff">
+							<h3>The S-curve: four of six conditions are derivative conditions</h3>
+							<p>The smooth start-up curve $s(t)=6t^5-15t^4+10t^3$ has six boundary conditions;
+							$s'(0)=s'(1)=0$ governs starting and stopping speed, $s''(0)=s''(1)=0$ governs starting
+							and stopping acceleration. Without the concept of a derivative, "smooth" is just a
+							feeling — you can't turn it into an equation.<br />
+							See → <a href="solar-tracker.html">Build · That First Twitch</a></p>
+						</div>
+
+						<div class="ladder" style="border-left-color:#6ed6a0">
+							<h3>Least squares: setting the derivative to zero</h3>
+							<p>The residual sum of squares $S(\mathbf c)=\lVert A\mathbf c-\mathbf b\rVert^2$ is a
+							bowl opening upward, and the bottom of the bowl is the optimal solution. Finding that
+							bottom is exactly "take the partial derivative with respect to each coefficient, set
+							it to zero" — one of the three routes to the normal equations.<br />
+							See → <a href="fitting.html">Fitting &amp; Least Squares</a></p>
+						</div>
+
+						<div class="ladder" style="border-left-color:#ef6a5e">
+							<h3>Neural networks: the chain rule, run tens of thousands of times</h3>
+							<p>The servo calibration data took a small network thirty thousand epochs of gradient
+							descent to catch up with what least squares solved in one step. The core action every
+							single epoch is using the chain rule to divide up the blame for the error across every
+							weight.<br />
+							See → <a href="neural.html">Neural Networks</a></p>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Extension: convolution — what an integral looks like in engineering</h2>
+
+						<p>The integral above adds up $f(x)\,dx$. Change what's being summed and you get one of
+						the most heavily used integrals in engineering:</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#3ec8d8">
+							$y(t)=\displaystyle\int x(\tau)\,h(t-\tau)\,d\tau$
+							<br /><span class="lbl">convolution</span>
+						</div>
+
+						<div class="ladder" style="border-left-color:#3ec8d8">
+							<h3>It's saying something quite plain</h3>
+							<p>Knock once, and a system rings for a while — that ringing is called the
+							<strong>impulse response</strong> $h(t)$.<br />
+							Any input can be seen as countless individual knocks of varying strength, each
+							producing its own echo, staggered in time and overlapping.
+							<strong>Adding those echoes up is convolution.</strong><br />
+							The integral sign here is doing exactly that job: "add up infinitely many of them."</p>
+						</div>
+
+						<p>A speaker's reverb, a camera lens's blur, multipath fading in communications — all the
+						same equation underneath. The explorer below breaks it into seven panels: send in one
+						sharpest-possible pulse and watch the channel tear it apart into several, round each into
+						a "haystack," and ask whether an inverse function can bend the haystack back into the
+						original spike.</p>
+
+						<div class="demos" style="grid-template-columns:1fr">
+							<a class="demo" href="demo-cir.html" target="_blank" rel="noopener"
+							   style="background:linear-gradient(160deg,#132b3a 0%,#0f1826 100%)">
+								<span class="tag">Engineering</span>
+								<strong>Channel Impulse Response Explorer</strong>
+								<span class="d">Drag the delay and amplitude of multiple paths and watch one spike
+								turn into a haystack; the more spread out in time, the deeper the notches in the
+								frequency domain. The last two panels are equalisers — dividing hard in a spectral
+								notch amplifies noise right along with the signal, which is exactly the difference
+								between zero-forcing and MMSE.</span>
+								<span class="go">Open demo →</span>
+							</a>
+						</div>
+
+						<p>Three things worth remembering, so they don't get flipped around:
+						<strong>the impulse function is the probe, not the haystack</strong>;
+						<strong>which path arrives first is read off panel ②'s left-right axis, not panel ⑤'s phase angle</strong>;
+						<strong>a successful equaliser doesn't mean the channel changed</strong> — what changed is
+						that you multiplied by a $G$.</p>
+
+						<ul class="actions">
+							<li><a href="#" class="button" data-gated="../assets/data/cir-manual.md">Download · Explorer Reading Guide<br /><span class="btn-en">Reading the seven panels</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+						<ul class="actions">
+							<li><a href="matrix.html" class="button">&larr; Previous: Matrices &amp; Transformations<br /><span class="btn-en">Matrices</span></a></li>
+							<li><a href="fitting.html" class="button primary">Next: Fitting &amp; Least Squares<br /><span class="btn-en">Fitting &amp; Least Squares</span></a></li>
+						</ul>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

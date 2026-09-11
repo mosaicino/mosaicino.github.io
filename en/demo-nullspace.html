@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Null Space, Solution Set, and Column Space</title>
+<style>
+  :root{
+    --ink:#0a0f14; --panel:#101821; --rule:#20303d;
+    --text:#d7e3ec; --muted:#6c8497;
+    --null:#96a8b8; --sol:#a48cf0; --xv:#f4626d;
+    --cs:#7fe3ff; --ax:#f0a92c; --warn:#ff8a5c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:"Iowan Old Style","Songti SC",Georgia,serif;
+    min-height:100vh;
+  }
+  .stage{display:flex;gap:1px;background:var(--rule)}
+  .pane{flex:1;position:relative;background:var(--ink);min-width:0}
+  .pane canvas{display:block;width:100%;touch-action:none}
+  .pane h2{
+    position:absolute;top:12px;left:16px;margin:0;
+    font-size:14px;font-weight:600;pointer-events:none;
+  }
+  .pane h2 small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:3px}
+
+  #bar{
+    padding:16px 18px 22px;border-top:1px solid var(--rule);
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));
+    gap:18px 26px;align-items:start;
+  }
+  h3{margin:0 0 9px;font-size:13px;font-weight:600;color:var(--muted)}
+  .row{display:flex;align-items:center;gap:9px;margin:9px 0}
+  .row label{width:26px;font-size:13px;flex:none;color:var(--muted)}
+  .row output{
+    width:50px;text-align:right;flex:none;
+    font-family:ui-monospace,Menlo,monospace;font-size:13px;font-variant-numeric:tabular-nums;
+  }
+  input[type=range]{flex:1;min-width:0;height:22px;accent-color:var(--sol)}
+  input[type=range]#rk{accent-color:var(--cs)}
+  input[type=range]:disabled{opacity:.35}
+  input[type=range]:focus-visible{outline:2px solid var(--ax);outline-offset:3px}
+
+  .bin{display:flex;gap:6px}
+  .bin input{
+    flex:1;min-width:0;background:#0a1219;border:1px solid var(--rule);color:var(--cs);
+    border-radius:7px;padding:7px 2px;text-align:center;
+    font-family:ui-monospace,Menlo,monospace;font-size:13px;-moz-appearance:textfield;
+  }
+  .bin input::-webkit-outer-spin-button,.bin input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .bin input:focus{outline:none;border-color:var(--cs)}
+
+  .mat{
+    font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.55;
+    color:var(--muted);white-space:pre;margin:8px 0 0;
+  }
+  .status{font-size:12.5px;line-height:1.65;color:var(--muted);margin:9px 0 0}
+  .status b{color:var(--text);font-weight:600}
+  .status.bad b{color:var(--warn)}
+  .status.good b{color:var(--sol)}
+
+  button.ghost{
+    background:none;border:1px solid var(--rule);color:var(--muted);
+    font:inherit;font-size:13px;border-radius:8px;padding:6px 11px;cursor:pointer;margin-top:10px;
+  }
+  button.ghost:hover{color:var(--text);border-color:var(--muted)}
+  button.ghost:focus-visible{outline:2px solid var(--ax);outline-offset:2px}
+
+  .key{font-size:12.5px;line-height:1.9;margin:0}
+  .key div{display:flex;align-items:center;gap:8px}
+  .key i{width:16px;height:3px;border-radius:2px;flex:none}
+
+  @media (max-width:720px){
+    .stage{flex-direction:column}
+    #bar{grid-template-columns:1fr;padding:14px 14px 20px}
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid var(--rule,var(--line,#20303d));
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--ink,#0a0f14);position:relative;z-index:50;
+}
+.backbar a{color:var(--muted,#6c8497);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#d7e3ec);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="matrix.html">&larr; Matrices &amp; Transformations</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<div class="stage">
+  <div class="pane">
+    <h2>Input space<small>x lives here</small></h2>
+    <canvas id="cin"></canvas>
+  </div>
+  <div class="pane">
+    <h2>Output space<small>Ax and b live here</small></h2>
+    <canvas id="cout"></canvas>
+  </div>
+</div>
+
+<div id="bar">
+  <div>
+    <h3>Rank</h3>
+    <div class="row"><label for="rk">rank</label><input type="range" id="rk"><output id="rkv"></output></div>
+    <p class="mat" id="matTxt"></p>
+  </div>
+
+  <div>
+    <h3>Free parameters</h3>
+    <div class="row"><label for="t0">t₁</label><input type="range" id="t0"><output id="t0v"></output></div>
+    <div class="row"><label for="t1">t₂</label><input type="range" id="t1"><output id="t1v"></output></div>
+    <p class="status" id="freeMsg"></p>
+  </div>
+
+  <div>
+    <h3>Target b</h3>
+    <div class="bin">
+      <input type="number" step="0.1" id="b0">
+      <input type="number" step="0.1" id="b1">
+      <input type="number" step="0.1" id="b2">
+    </div>
+    <button class="ghost" id="pull">Pull b into the column space</button>
+    <p class="status" id="solMsg"></p>
+  </div>
+
+  <div>
+    <h3>Legend</h3>
+    <div class="key">
+      <div><i style="background:var(--null)"></i>Null space (through the origin)</div>
+      <div><i style="background:var(--sol)"></i>Solution set (shifted over)</div>
+      <div><i style="background:var(--xv)"></i>Current x</div>
+      <div><i style="background:var(--cs)"></i>Column space</div>
+      <div><i style="background:var(--ax)"></i>Ax</div>
+    </div>
+    <p class="status" id="numMsg"></p>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== vectors ===== */
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const scl=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const len=a=>Math.hypot(a[0],a[1],a[2]);
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const unit=a=>{const n=len(a)||1;return scl(a,1/n);};
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+
+/* ===== matrices for each rank ===== */
+const MATS = {
+  3: [[1.0,0.5,0.2],[0.3,0.8,0.4],[0.1,0.6,0.9]],
+  2: [[1.0,0.5,0.2],[0.3,0.8,0.4],[1.3,1.3,0.6]],   // row 3 = row 1 + row 2
+  1: [[1.0,0.5,0.2],[2.0,1.0,0.4],[-1.0,-0.5,-0.2]] // all three rows are multiples of each other
+};
+const S = {
+  rank: 2,
+  t: [0, 0],
+  b: [1.7, 1.5, 1.6],
+  az: 0.78, el: 0.38, zoom: 1
+};
+const M = () => MATS[S.rank];
+const rowsOf = () => M().map(r => [...r]);
+const colsOf = () => [0,1,2].map(j => [M()[0][j], M()[1][j], M()[2][j]]);
+const apply = x => M().map(r => dot(r, x));
+
+/* ===== orthogonal basis helpers ===== */
+function orthoBasis(vecs, tol){
+  const B = [];
+  for (const v of vecs){
+    let u = [...v];
+    for (const e of B) u = sub(u, scl(e, dot(u, e)));
+    if (len(u) > tol) B.push(unit(u));
+  }
+  return B;
+}
+// the complement orthogonal to a given basis
+function complement(B){
+  const out = [];
+  for (const e of [[1,0,0],[0,1,0],[0,0,1]]){
+    let u = [...e];
+    for (const q of B) u = sub(u, scl(q, dot(u, q)));
+    for (const q of out) u = sub(u, scl(q, dot(u, q)));
+    if (len(u) > 1e-6) out.push(unit(u));
+  }
+  return out;
+}
+const rowBasis = () => orthoBasis(rowsOf(), 1e-6);
+const colBasis = () => orthoBasis(colsOf(), 1e-6);
+const nullBasis = () => complement(rowBasis());   // null space = orthogonal complement of the row space
+
+/* ===== minimum-norm least-squares solution ===== */
+function minNormSolution(b){
+  const C = colsOf();
+  const G = [0,1,2].map(i => [0,1,2].map(j => dot(C[i], C[j])).concat(dot(C[i], b)));
+  const tr = G[0][0] + G[1][1] + G[2][2];
+  for (let i = 0; i < 3; i++) G[i][i] += 1e-10 * tr + 1e-14;
+  for (let c = 0; c < 3; c++){
+    let p = c;
+    for (let r = c+1; r < 3; r++) if (Math.abs(G[r][c]) > Math.abs(G[p][c])) p = r;
+    [G[c], G[p]] = [G[p], G[c]];
+    if (Math.abs(G[c][c]) < 1e-14) continue;
+    for (let r = 0; r < 3; r++){
+      if (r === c) continue;
+      const f = G[r][c] / G[c][c];
+      for (let k = c; k < 4; k++) G[r][k] -= f * G[c][k];
+    }
+  }
+  let y = [0,1,2].map(i => Math.abs(G[i][i]) < 1e-14 ? 0 : G[i][3] / G[i][i]);
+  // strip off the null-space component to get the minimum-norm particular solution
+  for (const n of nullBasis()) y = sub(y, scl(n, dot(y, n)));
+  return y;
+}
+const projOnto = (v, B) => B.reduce((p, e) => add(p, scl(e, dot(v, e))), [0,0,0]);
+
+/* ===== renderer: both canvases share one camera angle ===== */
+let ctx, W, H, focal, eye, fw, rt, up;
+const NEAR = 0.08;
+function beginScene(cv, reach){
+  ctx = cv.getContext("2d");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const d = reach * 3.4;
+  const ce = Math.cos(S.el), se = Math.sin(S.el);
+  eye = [d*ce*Math.cos(S.az), d*ce*Math.sin(S.az), d*se];
+  fw = unit(sub([0,0,0], eye));
+  rt = unit(cross(fw, [0,0,1]));
+  up = cross(rt, fw);
+  focal = (H/2) / Math.tan(24 * Math.PI/180) * S.zoom;
+}
+const toCam = p => { const d = sub(p, eye); return [dot(d,rt), dot(d,up), dot(d,fw)]; };
+const toScr = c => [W/2 + focal*c[0]/c[2], H/2 - focal*c[1]/c[2]];
+
+function seg(p, q){
+  let a = toCam(p), b = toCam(q);
+  if (a[2] < NEAR && b[2] < NEAR) return null;
+  if (a[2] < NEAR) a = mix(a, b, (NEAR - a[2]) / (b[2] - a[2]));
+  else if (b[2] < NEAR) b = mix(b, a, (NEAR - b[2]) / (a[2] - b[2]));
+  return [toScr(a), toScr(b)];
+}
+function line(p, q, color, w, dash){
+  const s = seg(p, q); if (!s) return;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = w;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]); ctx.lineTo(s[1][0], s[1][1]); ctx.stroke();
+  ctx.restore();
+}
+function poly(pts, fill, stroke){
+  const cam = pts.map(toCam), out = [];
+  for (let i = 0; i < cam.length; i++){
+    const a = cam[i], b = cam[(i+1) % cam.length];
+    const ai = a[2] >= NEAR, bi = b[2] >= NEAR;
+    if (ai) out.push(a);
+    if (ai !== bi) out.push(mix(a, b, (NEAR - a[2]) / (b[2] - a[2])));
+  }
+  if (out.length < 3) return;
+  const s = out.map(toScr);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]);
+  for (let i = 1; i < s.length; i++) ctx.lineTo(s[i][0], s[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  ctx.restore();
+}
+function arrow(from, to, color, w, label){
+  const s = seg(from, to); if (!s) return;
+  const [o, t] = s;
+  let dx = t[0]-o[0], dy = t[1]-o[1];
+  const L = Math.hypot(dx, dy); if (L < 1) return;
+  dx /= L; dy /= L;
+  const head = Math.min(9 + w*2.2, L*0.36), half = head*0.44;
+  const bx = t[0]-dx*head, by = t[1]-dy*head;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(t[0], t[1]);
+  ctx.lineTo(bx - dy*half, by + dx*half);
+  ctx.lineTo(bx + dy*half, by - dx*half);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  if (label) tag(label, t[0]+dx*15, t[1]+dy*15, color);
+}
+function marker(p, color, label, r){
+  const c = toCam(p); if (c[2] < NEAR) return;
+  const s = toScr(c);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.fillStyle = "rgba(10,15,20,.9)";
+  ctx.beginPath(); ctx.arc(s[0], s[1], r || 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  if (label) tag(label, s[0]+18, s[1]-12, color);
+}
+function tag(text, sx, sy, color, size){
+  const f = size || 13;
+  ctx.save();
+  ctx.font = `600 ${f}px ui-monospace, Menlo, monospace`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const w = ctx.measureText(text).width + 10, h = f + 8;
+  ctx.fillStyle = "rgba(10,15,20,.82)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(sx-w/2, sy-h/2, w, h, 5); else ctx.rect(sx-w/2, sy-h/2, w, h);
+  ctx.fill();
+  ctx.fillStyle = color; ctx.fillText(text, sx, sy);
+  ctx.restore();
+}
+const niceStep = r => {
+  const raw = r/4, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p;
+  return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p;
+};
+function frame(R){
+  const step = niceStep(R);
+  for (let i = -R; i <= R + 1e-9; i += step){
+    const c = Math.abs(Math.abs(i)-R) < 1e-9 ? "#1b2b38" : "#14222d";
+    line([i,-R,0], [i,R,0], c, 1);
+    line([-R,i,0], [R,i,0], c, 1);
+  }
+  for (const [p, nm] of [[[R,0,0],"1"], [[0,R,0],"2"], [[0,0,R],"3"]]){
+    line(scl(p,-1), p, "#2b4254", 1.2);
+    const c = toCam(p);
+    if (c[2] > NEAR){ const s = toScr(c); tag(nm, s[0], s[1], "#6d8798", 11); }
+  }
+}
+
+/* ===== draw both scenes ===== */
+const cin = document.getElementById("cin"), cout = document.getElementById("cout");
+const NC = "#96a8b8", SC = "#a48cf0", XC = "#f4626d", CSC = "#7fe3ff", AXC = "#f0a92c", WC = "#ff8a5c";
+
+function render(){
+  const NB = nullBasis(), CB = colBasis();
+  const x0 = minNormSolution(S.b);
+  let x = [...x0];
+  NB.forEach((n, i) => { x = add(x, scl(n, S.t[i])); });
+  const Ax = apply(x);
+  const residual = len(sub(Ax, S.b));
+
+  /* --- left: input space --- */
+  {
+    const R = Math.max(2, Math.ceil(Math.max(len(x), len(x0)) + 1));
+    beginScene(cin, R);
+    frame(R);
+    const E = R * 1.05;
+
+    // null space: a line or a plane, through the origin
+    if (NB.length === 1) line(scl(NB[0],-E), scl(NB[0],E), NC, 1.6, [6,5]);
+    else if (NB.length === 2){
+      const [u, v] = NB;
+      poly([add(scl(u,-E),scl(v,-E)), add(scl(u,E),scl(v,-E)),
+            add(scl(u,E),scl(v,E)),   add(scl(u,-E),scl(v,E))],
+           "rgba(150,168,184,.11)", "rgba(150,168,184,.4)");
+    }
+
+    // solution set: null space shifted to x0
+    if (NB.length === 1){
+      line(add(x0, scl(NB[0],-E)), add(x0, scl(NB[0],E)), SC, 2, [6,5]);
+    } else if (NB.length === 2){
+      const [u, v] = NB;
+      poly([add(x0,add(scl(u,-E),scl(v,-E))), add(x0,add(scl(u,E),scl(v,-E))),
+            add(x0,add(scl(u,E),scl(v,E))),   add(x0,add(scl(u,-E),scl(v,E)))],
+           "rgba(164,140,240,.13)", "rgba(164,140,240,.55)");
+    }
+    if (NB.length) line(x0, [0,0,0], "rgba(164,140,240,.3)", 1, [3,4]);
+
+    arrow([0,0,0], x, XC, 2.4, "x");
+    marker(x0, SC, NB.length ? "x₀" : null, 4);
+    if (NB.length === 0) marker([0,0,0], NC, "null space is just the origin", 4);
+  }
+
+  /* --- right: output space --- */
+  {
+    const R = Math.max(2, Math.ceil(Math.max(len(S.b), len(Ax)) + 1));
+    beginScene(cout, R);
+    frame(R);
+    const E = R * 1.05;
+
+    if (CB.length === 1) line(scl(CB[0],-E), scl(CB[0],E), CSC, 1.8);
+    else if (CB.length === 2){
+      const [u, v] = CB;
+      poly([add(scl(u,-E),scl(v,-E)), add(scl(u,E),scl(v,-E)),
+            add(scl(u,E),scl(v,E)),   add(scl(u,-E),scl(v,E))],
+           "rgba(127,227,255,.10)", "rgba(127,227,255,.35)");
+    }
+
+    arrow([0,0,0], Ax, AXC, 2.8, "Ax");
+    if (residual > 1e-4){
+      line(S.b, Ax, "rgba(255,138,92,.8)", 1.6, [5,4]);
+    }
+    marker(S.b, CSC, "b", 6);
+  }
+
+  report(x, x0, Ax, residual, NB.length);
+}
+
+const f2 = n => (Math.abs(n) < 5e-3 ? 0 : n).toFixed(2);
+const vec = v => `(${f2(v[0])}, ${f2(v[1])}, ${f2(v[2])})`;
+
+function report(x, x0, Ax, residual, nd){
+  document.getElementById("rkv").textContent = S.rank;
+  document.getElementById("matTxt").textContent =
+    M().map(r => "[ " + r.map(v => v.toFixed(1).padStart(4)).join("  ") + " ]").join("\n");
+
+  const fm = document.getElementById("freeMsg");
+  fm.innerHTML = nd === 0
+    ? `<b>0</b> free parameters. The null space is just the origin, so the solution is a single isolated point.`
+    : `<b>${nd}</b> free parameter${nd>1?'s':''} = 3 &minus; rank ${S.rank}. Drag it: x on the left moves along the solution set, while Ax on the right stays <b>completely still</b>.`;
+
+  const sm = document.getElementById("solMsg");
+  sm.className = "status " + (residual > 1e-4 ? "bad" : "good");
+  sm.innerHTML = residual > 1e-4
+    ? `b is outside the column space, <b>no exact solution</b>. The dashed orange line is the gap, ${f2(residual)}; purple shows the least-squares solution set.`
+    : (nd === 0 ? `b is in the column space, <b>a unique solution</b>.` : `b is in the column space, <b>infinitely many solutions</b> &mdash; the whole purple set solves it.`);
+
+  document.getElementById("numMsg").innerHTML =
+    `x = ${vec(x)}<br>x₀ = ${vec(x0)}<br>Ax = ${vec(Ax)}`;
+}
+
+/* ===== interaction ===== */
+let drag = null;
+for (const cv of [cin, cout]){
+  cv.addEventListener("pointerdown", e => { drag = {x:e.clientX, y:e.clientY}; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => {
+    if (!drag) return;
+    S.az -= (e.clientX - drag.x) * 0.007;
+    S.el = Math.max(-1.45, Math.min(1.45, S.el + (e.clientY - drag.y) * 0.006));
+    drag = {x:e.clientX, y:e.clientY};
+    render();
+  });
+  cv.addEventListener("wheel", e => {
+    e.preventDefault();
+    S.zoom = Math.max(0.5, Math.min(2.5, S.zoom * Math.exp(-e.deltaY * 0.0012)));
+    render();
+  }, {passive:false});
+}
+addEventListener("pointerup", () => drag = null);
+addEventListener("pointercancel", () => drag = null);
+
+function sizeCanvases(){
+  const h = Math.max(300, Math.min(460, innerHeight * 0.46));
+  cin.style.height = h + "px"; cout.style.height = h + "px";
+  render();
+}
+addEventListener("resize", sizeCanvases);
+
+/* rank slider */
+const rk = document.getElementById("rk");
+rk.min = 1; rk.max = 3; rk.step = 1; rk.value = S.rank;
+rk.addEventListener("input", () => {
+  S.rank = +rk.value; S.t = [0,0];
+  for (let i = 0; i < 2; i++) document.getElementById("t"+i).value = 0;
+  syncFree(); render();
+});
+
+/* free-parameter sliders */
+for (let i = 0; i < 2; i++){
+  const sl = document.getElementById("t" + i);
+  sl.min = -3; sl.max = 3; sl.step = 0.05; sl.value = 0;
+  sl.addEventListener("input", () => {
+    S.t[i] = parseFloat(sl.value);
+    document.getElementById("t"+i+"v").textContent = S.t[i].toFixed(2);
+    render();
+  });
+}
+function syncFree(){
+  const nd = 3 - S.rank;
+  for (let i = 0; i < 2; i++){
+    const sl = document.getElementById("t" + i);
+    sl.disabled = i >= nd;
+    document.getElementById("t"+i+"v").textContent = i < nd ? S.t[i].toFixed(2) : "—";
+  }
+}
+
+/* b */
+for (let i = 0; i < 3; i++){
+  const el = document.getElementById("b" + i);
+  el.value = S.b[i];
+  el.addEventListener("input", () => {
+    const n = parseFloat(el.value);
+    if (Number.isFinite(n)){ S.b[i] = n; render(); }
+  });
+}
+document.getElementById("pull").onclick = () => {
+  S.b = projOnto(S.b, colBasis());
+  for (let i = 0; i < 3; i++) document.getElementById("b" + i).value = f2(S.b[i]);
+  render();
+};
+
+syncFree();
+sizeCanvases();
+})();
+</script>
+</body>
+</html>

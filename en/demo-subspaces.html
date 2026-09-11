@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Four Fundamental Subspaces &amp; Linear Dependence in 3D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0a0d12; color: #a6adba; font-size: 11px; overflow: hidden; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+        .ui-panel {
+            position: absolute; top: 12px; left: 12px; z-index: 10; width: 312px;
+            background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        h3 { font-size: 12px; font-weight: 600; color: #f3f4f6; text-align: center; }
+        .matrix-wrap { display: flex; align-items: center; gap: 6px; }
+        .bracket { color: #3b82f6; font-size: 42px; line-height: 1; font-weight: 200; }
+        .matrix-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex: 1; }
+        .matrix-cell {
+            background: #1e293b; border: 1px solid #334155; color: #38bdf8;
+            font-family: ui-monospace, monospace; font-size: 11px; text-align: center; padding: 4px; border-radius: 4px;
+        }
+        .matrix-cell.editable { background: #0c4a6e; color: #fff; border-color: #38bdf8; }
+        .slider-group { background: rgba(255,255,255,0.02); padding: 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .slider-title { font-size: 10px; color: #f43f5e; font-weight: bold; margin-bottom: 4px; }
+        .slider-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+        .slider-row label { width: 24px; font-size: 10px; color: #94a3b8; }
+        .slider-row input[type="range"] { flex: 1; height: 3px; accent-color: #f43f5e; }
+        .slider-row span { width: 28px; text-align: right; font-family: monospace; font-size: 10px; }
+        .status-card { background: rgba(30, 41, 59, 0.5); border-radius: 6px; padding: 6px; font-size: 10px; }
+        .status-row { display: flex; justify-content: space-between; margin-bottom: 2px; gap: 8px; }
+        .highlight { font-weight: bold; font-family: monospace; }
+        .rank-2 { color: #f59e0b; }
+        .rank-3 { color: #10b981; }
+        .legend { font-size: 9px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .hint { font-size: 10px; line-height: 1.45; color: #94a3b8; }
+        .presets { display: flex; gap: 4px; }
+        .presets button {
+            flex: 1; font-size: 10px; padding: 4px; border-radius: 4px; border: 1px solid #334155;
+            background: #1e293b; color: #e2e8f0; cursor: pointer;
+        }
+        .presets button:hover { border-color: #38bdf8; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+/* Lightweight OrbitControls: API-compatible, avoids third-party CDN dependency */
+(function(){
+  if (typeof THREE === "undefined" || THREE.OrbitControls) return;
+  THREE.OrbitControls = function(object, dom){
+    var scope = this;
+    scope.object = object; scope.domElement = dom;
+    scope.target = new THREE.Vector3();
+    scope.enableDamping = false; scope.dampingFactor = 0.08;
+    scope.minDistance = 0.5; scope.maxDistance = 500;
+
+    var sph = new THREE.Spherical(), off = new THREE.Vector3();
+    off.copy(object.position).sub(scope.target);
+    sph.setFromVector3(off);
+    var tT = sph.theta, tP = sph.phi, tR = sph.radius;
+    var drag = false, lx = 0, ly = 0;
+
+    function down(e){ drag = true; lx = e.clientX; ly = e.clientY;
+      if (dom.setPointerCapture) { try { dom.setPointerCapture(e.pointerId); } catch(_){} } }
+    function move(e){
+      if (!drag) return;
+      tT -= (e.clientX - lx) * 0.006;
+      tP -= (e.clientY - ly) * 0.006;
+      tP = Math.max(0.05, Math.min(Math.PI - 0.05, tP));
+      lx = e.clientX; ly = e.clientY;
+    }
+    function up(){ drag = false; }
+    function wheel(e){
+      e.preventDefault();
+      tR *= (1 + Math.sign(e.deltaY) * 0.08);
+      tR = Math.max(scope.minDistance, Math.min(scope.maxDistance, tR));
+    }
+    dom.addEventListener("pointerdown", down);
+    dom.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    dom.addEventListener("wheel", wheel, {passive:false});
+
+    scope.update = function(){
+      var k = scope.enableDamping ? 0.18 : 1;
+      sph.theta  += (tT - sph.theta)  * k;
+      sph.phi    += (tP - sph.phi)    * k;
+      sph.radius += (tR - sph.radius) * k;
+      off.setFromSpherical(sph);
+      scope.object.position.copy(scope.target).add(off);
+      scope.object.lookAt(scope.target);
+    };
+    scope.update();
+  };
+})();
+</script>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 22px;border-bottom:1px solid var(--rule,var(--line,#20303d));
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--ink,#0a0f14);position:relative;z-index:50;
+}
+.backbar a{color:var(--muted,#6c8497);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#d7e3ec);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="matrix.html">&larr; Matrices &amp; Transformations</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+    <div id="canvas-container"></div>
+    <div class="ui-panel">
+        <h3>3×3 matrix: how the four subspaces collapse</h3>
+        <div class="matrix-wrap">
+            <div class="bracket">[</div>
+            <div class="matrix-container">
+                <div class="matrix-cell">1.0</div><div class="matrix-cell">0.0</div><div class="matrix-cell">1.0</div>
+                <div class="matrix-cell">0.0</div><div class="matrix-cell">1.0</div><div class="matrix-cell">1.0</div>
+                <div class="matrix-cell editable" id="m31">1.0</div>
+                <div class="matrix-cell editable" id="m32">1.0</div>
+                <div class="matrix-cell editable" id="m33">2.0</div>
+            </div>
+            <div class="bracket">]</div>
+        </div>
+        <div class="slider-group">
+            <div class="slider-title">Only row 3 is adjustable (rows 1&ndash;2 fixed)</div>
+            <div class="slider-row"><label>R31</label><input type="range" id="r31" min="-3" max="3" step="0.1" value="1.0" oninput="updateScene()"><span id="v31">1.0</span></div>
+            <div class="slider-row"><label>R32</label><input type="range" id="r32" min="-3" max="3" step="0.1" value="1.0" oninput="updateScene()"><span id="v32">1.0</span></div>
+            <div class="slider-row"><label>R33</label><input type="range" id="r33" min="-3" max="3" step="0.1" value="2.0" oninput="updateScene()"><span id="v33">2.0</span></div>
+        </div>
+        <div class="presets">
+            <button onclick="setRow(1,1,2)">Dependent, R3=R1+R2</button>
+            <button onclick="setRow(1,-1,1)">Independent example</button>
+        </div>
+        <div class="status-card">
+            <div class="status-row"><span>det(A) / triple product</span><span class="highlight" id="det-val">0</span></div>
+            <div class="status-row"><span>Rank(A)</span><span class="highlight" id="rank-val">2</span></div>
+            <div class="status-row"><span>Row relation</span><span class="highlight" id="dep-val">—</span></div>
+            <div class="status-row"><span>dim N(A)</span><span class="highlight" id="null-dim">—</span></div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#60a5fa;"></span>Row vectors / row space</div>
+            <div class="legend-item"><span class="dot" style="background:#ef4444;"></span>Null space N(A)</div>
+            <div class="legend-item"><span class="dot" style="background:#34d399;"></span>Column vectors / column space</div>
+            <div class="legend-item"><span class="dot" style="background:#c084fc;"></span>Left null space N(A&#7488;)</div>
+        </div>
+        <div class="hint">Rows 1&ndash;2 are fixed at (1,0,1) and (0,1,1). When row 3 lands in the plane they span &mdash; that is, R33 = R31 + R32 &mdash; the three rows become dependent: the row and column spaces collapse to blue/green planes, and red/purple lines grow out of the origin. Drag the canvas to rotate.</div>
+    </div>
+    <script>
+        let scene, camera, renderer, controls;
+        let arrowsR = [], arrowsC = [];
+        let rowPlane, colPlane, nullLine, leftNullLine, originDot;
+
+        const R1 = new THREE.Vector3(1, 0, 1);
+        const R2 = new THREE.Vector3(0, 1, 1);
+
+        function makeArrow(color) {
+            return new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), 1, color, 0.28, 0.12);
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0d12);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(9, 7, 11);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+            const light = new THREE.DirectionalLight(0xffffff, 0.75);
+            light.position.set(10, 20, 15);
+            scene.add(light);
+            scene.add(new THREE.GridHelper(16, 16, 0x1e293b, 0x0f172a));
+            scene.add(new THREE.AxesHelper(4));
+
+            const planeGeo = new THREE.CircleGeometry(5.5, 48);
+            rowPlane = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({
+                color: 0x3b82f6, side: THREE.DoubleSide, transparent: true, opacity: 0.28
+            }));
+            colPlane = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({
+                color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.22
+            }));
+            scene.add(rowPlane, colPlane);
+
+            nullLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xef4444 }));
+            leftNullLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xa855f7 }));
+            scene.add(nullLine, leftNullLine);
+
+            arrowsR = [makeArrow(0x60a5fa), makeArrow(0x93c5fd), makeArrow(0x1d4ed8)];
+            arrowsC = [makeArrow(0x34d399), makeArrow(0x6ee7b7), makeArrow(0x047857)];
+            arrowsR.concat(arrowsC).forEach(a => scene.add(a));
+
+            originDot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshBasicMaterial({ color: 0xf8fafc }));
+            scene.add(originDot);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            updateScene();
+            animate();
+        }
+
+        function setArrow(arrow, v) {
+            const len = v.length();
+            if (len < 1e-4) { arrow.visible = false; return; }
+            arrow.visible = true;
+            arrow.setDirection(v.clone().normalize());
+            arrow.setLength(len, 0.28, 0.12);
+        }
+
+        function orientPlane(mesh, normal) {
+            const n = normal.clone().normalize();
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+        }
+
+        function setLine(line, dir) {
+            const d = dir.clone().normalize().multiplyScalar(6);
+            line.geometry.dispose();
+            line.geometry = new THREE.BufferGeometry().setFromPoints([d.clone().negate(), d]);
+        }
+
+        function setRow(a, b, c) {
+            document.getElementById('r31').value = a;
+            document.getElementById('r32').value = b;
+            document.getElementById('r33').value = c;
+            updateScene();
+        }
+
+        function updateScene() {
+            const r31 = +document.getElementById('r31').value;
+            const r32 = +document.getElementById('r32').value;
+            const r33 = +document.getElementById('r33').value;
+            document.getElementById('m31').innerText = document.getElementById('v31').innerText = r31.toFixed(1);
+            document.getElementById('m32').innerText = document.getElementById('v32').innerText = r32.toFixed(1);
+            document.getElementById('m33').innerText = document.getElementById('v33').innerText = r33.toFixed(1);
+
+            const r3 = new THREE.Vector3(r31, r32, r33);
+            const c1 = new THREE.Vector3(1, 0, r31);
+            const c2 = new THREE.Vector3(0, 1, r32);
+            const c3 = new THREE.Vector3(1, 1, r33);
+
+            // r1 x r2 = (-1, -1, 1);  dependent <=> r3 . (r1 x r2) = 0 <=> r33 = r31 + r32
+            const nRow = new THREE.Vector3().crossVectors(R1, R2); // (-1,-1,1)
+            const det = r3.dot(nRow); // = -r31 - r32 + r33
+            const dependent = Math.abs(det) < 0.08;
+
+            setArrow(arrowsR[0], R1);
+            setArrow(arrowsR[1], R2);
+            setArrow(arrowsR[2], r3);
+            setArrow(arrowsC[0], c1);
+            setArrow(arrowsC[1], c2);
+            setArrow(arrowsC[2], c3);
+
+            const rankEl = document.getElementById('rank-val');
+            const depEl = document.getElementById('dep-val');
+            const nullEl = document.getElementById('null-dim');
+            document.getElementById('det-val').innerText = det.toFixed(2);
+
+            if (dependent) {
+                rankEl.innerText = '2';
+                rankEl.className = 'highlight rank-2';
+                depEl.innerText = 'R3 lies in the R1,R2 plane';
+                depEl.className = 'highlight rank-2';
+                nullEl.innerText = '1';
+
+                orientPlane(rowPlane, nRow);
+                rowPlane.visible = true;
+
+                const nCol = new THREE.Vector3().crossVectors(c1, c2);
+                if (nCol.length() < 1e-6) nCol.copy(nRow);
+                orientPlane(colPlane, nCol);
+                colPlane.visible = true;
+
+                setLine(nullLine, nRow);
+                nullLine.visible = true;
+
+                // left null space: perpendicular to all three columns. When dependent,
+                // y=(1,1,-1) against A's columns: r33=r31+r32 means c3=c1+c2, N(A^T)=span{(1,1,-1)}
+                const y = new THREE.Vector3(1, 1, -1);
+                setLine(leftNullLine, y);
+                leftNullLine.visible = true;
+            } else {
+                rankEl.innerText = '3';
+                rankEl.className = 'highlight rank-3';
+                depEl.innerText = 'Three rows independent, span R³';
+                depEl.className = 'highlight rank-3';
+                nullEl.innerText = '0 (origin only)';
+                rowPlane.visible = false;
+                colPlane.visible = false;
+                nullLine.visible = false;
+                leftNullLine.visible = false;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hybrid Fractal · Koch + Sierpinski</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #16223a;
+    --line: #2a3c5e;
+    --text: #e6ecf5;
+    --muted: #93a4c0;
+    --accent: #f7c579;
+    --accent2: #7ee0c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif; }
+  #wrap { display: flex; flex-direction: column; height: 100%; }
+  header {
+    display: flex; flex-wrap: wrap; gap: 0.65rem 1.1rem;
+    align-items: center; justify-content: space-between;
+    padding: 0.65rem 1rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+  header h1 span { color: var(--accent); font-weight: 500; font-size: 0.86em; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.65rem 0.95rem; align-items: center;
+    font-size: 0.82rem; color: var(--muted); }
+  .controls label { display: flex; align-items: center; gap: 0.35rem; }
+  .controls input[type="range"] { width: 86px; accent-color: var(--accent2); }
+  .controls button {
+    background: #1e2e4d; color: var(--text);
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 0.32rem 0.75rem; cursor: pointer;
+  }
+  .controls button.primary { background: #2a3d62; border-color: var(--accent2); }
+  .controls button:hover { border-color: var(--accent); }
+  .val { color: var(--accent); min-width: 1em; display: inline-block; text-align: right; }
+  #stage { flex: 1; position: relative; min-height: 0; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; background: #0b1220; }
+  #status {
+    position: absolute; right: 12px; bottom: 10px;
+    font-size: 0.75rem; color: var(--muted); pointer-events: none;
+  }
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 20px;border-bottom:1px solid var(--line,#2a3c5e);
+  background:var(--panel,#16223a);
+  font-size:13px;font-family:-apple-system,"PingFang SC",sans-serif;
+}
+.backbar a{color:var(--muted,#93a4c0);text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:var(--text,#e6ecf5);border-bottom-color:currentColor}
+.backbar .sep{opacity:.45}
+#wrap{height:auto;min-height:100vh}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="fractals.html">&larr; Fractals &amp; Dimension</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+<div id="wrap">
+  <header>
+    <h1>Hybrid Fractal <span>turtle trail · Koch snowflake · Sierpinski at C</span></h1>
+    <div class="controls">
+      <label>Koch <span class="val" id="kv">4</span>
+        <input id="koch" type="range" min="0" max="6" value="4" />
+      </label>
+      <label>Sierpinski <span class="val" id="sv">3</span>
+        <input id="sier" type="range" min="0" max="6" value="3" />
+      </label>
+      <label>Speed <span class="val" id="spv">1</span>
+        <input id="speed" type="range" min="0" max="4" value="1" />
+      </label>
+      <label><input id="center" type="checkbox" /> center</label>
+      <button class="primary" id="draw">Replay</button>
+      <button id="skip">Finish</button>
+      <button id="save">Save PNG</button>
+    </div>
+  </header>
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="status"></div>
+  </div>
+</div>
+<script>
+(function () {
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const status = document.getElementById("status");
+  const kochEl = document.getElementById("koch");
+  const sierEl = document.getElementById("sier");
+  const speedEl = document.getElementById("speed");
+  const kv = document.getElementById("kv");
+  const sv = document.getElementById("sv");
+  const spv = document.getElementById("spv");
+
+  kochEl.oninput = () => kv.textContent = kochEl.value;
+  sierEl.oninput = () => sv.textContent = sierEl.value;
+  speedEl.oninput = () => spv.textContent = speedEl.value;
+
+  let ops = [];
+  let playIndex = 0;
+  let playing = false;
+  let dpr = 1;
+  let W = 0, H = 0;
+  let view = { s: 1, ox: 0, oy: 0 };
+
+  function resize() {
+    const stage = document.getElementById("stage");
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = stage.clientWidth;
+    H = stage.clientHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function toScreen(x, y) {
+    return [view.ox + x * view.s, view.oy - y * view.s];
+  }
+
+  function fitView() {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    function acc(x, y) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    for (const op of ops) {
+      if (op.t === "line") { acc(op.x0, op.y0); acc(op.x1, op.y1); }
+      else if (op.t === "tri") { for (const pt of op.pts) acc(pt[0], pt[1]); }
+      else if (op.t === "goto") acc(op.x, op.y);
+    }
+    if (!isFinite(minX)) { minX = maxX = minY = maxY = 0; }
+    const bw = Math.max(maxX - minX, 1);
+    const bh = Math.max(maxY - minY, 1);
+    const pad = 0.08;
+    const s = Math.min((W * (1 - 2 * pad)) / bw, (H * (1 - 2 * pad)) / bh);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    view.s = s;
+    view.ox = W / 2 - cx * s;
+    // Vertical compromise: true center, padding keeps it off both edges.
+    view.oy = H * 0.50 + cy * s;
+  }
+
+  function hueFill(i) {
+    return "hsla(" + ((i * 23 + 190) % 360) + ", 62%, 62%, 0.72)";
+  }
+  function hueStroke(i) {
+    return "hsl(" + ((i * 23 + 190) % 360) + ", 70%, 78%)";
+  }
+
+  function build() {
+    const kochLevel = +kochEl.value;
+    const sierLevel = +sierEl.value;
+    const withCenter = document.getElementById("center").checked;
+    const side = Math.min(W, H) * 0.70;
+
+    const Htri = side * Math.sqrt(3) / 2;
+    const startX = -side / 2;
+    const startY = -side * Math.sqrt(3) / 6 + Htri / 3;
+
+    const T = { x: startX, y: startY, h: 0 };
+    ops = [];
+    let colorTick = 0;
+
+    function fd(len) {
+      const rad = T.h * Math.PI / 180;
+      const nx = T.x + len * Math.cos(rad);
+      const ny = T.y + len * Math.sin(rad);
+      ops.push({ t: "line", x0: T.x, y0: T.y, x1: nx, y1: ny, h: T.h });
+      T.x = nx; T.y = ny;
+    }
+    function left(a) { T.h += a; }
+    function right(a) { T.h -= a; }
+
+    function filledTri(len, hue) {
+      const pts = [];
+      let x = T.x, y = T.y, h = T.h;
+      pts.push([x, y]);
+      for (let i = 0; i < 3; i++) {
+        const rad = h * Math.PI / 180;
+        x += len * Math.cos(rad);
+        y += len * Math.sin(rad);
+        h += 120;
+        pts.push([x, y]);
+      }
+      ops.push({ t: "tri", pts: pts, hue: hue, h: h, x: x, y: y });
+      T.x = x; T.y = y; T.h = h;
+    }
+
+    function sierpinski(length, levels) {
+      if (levels === 0) {
+        filledTri(length, colorTick++);
+        return;
+      }
+      const half = length / 2;
+      sierpinski(half, levels - 1);
+      const rad = T.h * Math.PI / 180;
+      T.x += half * Math.cos(rad);
+      T.y += half * Math.sin(rad);
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+      sierpinski(half, levels - 1);
+      T.x -= half * Math.cos(rad);
+      T.y -= half * Math.sin(rad);
+      left(60);
+      const rad2 = T.h * Math.PI / 180;
+      T.x += half * Math.cos(rad2);
+      T.y += half * Math.sin(rad2);
+      right(60);
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+      sierpinski(half, levels - 1);
+      left(60);
+      const rad3 = T.h * Math.PI / 180;
+      T.x -= half * Math.cos(rad3);
+      T.y -= half * Math.sin(rad3);
+      right(60);
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+    }
+
+    function sierFromC(cx, cy, ch, sideLen, levels) {
+      const saved = { x: T.x, y: T.y, h: T.h };
+      T.x = cx; T.y = cy; T.h = ch;
+      right(180);
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+      sierpinski(sideLen, levels);
+      T.x = saved.x; T.y = saved.y; T.h = saved.h;
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+    }
+
+    function koch(length, levels) {
+      if (levels === 0) { fd(length); return; }
+      const seg = length / 3;
+      koch(seg, levels - 1);
+      left(60);
+      koch(seg, levels - 1);
+      sierFromC(T.x, T.y, T.h, seg, sierLevel);
+      right(120);
+      koch(seg, levels - 1);
+      left(60);
+      koch(seg, levels - 1);
+    }
+
+    ops.push({ t: "goto", x: startX, y: startY, h: 0 });
+    for (let i = 0; i < 3; i++) {
+      koch(side, kochLevel);
+      right(120);
+    }
+    if (withCenter) {
+      T.x = startX; T.y = startY; T.h = -60;
+      ops.push({ t: "goto", x: T.x, y: T.y, h: T.h });
+      sierpinski(side, sierLevel);
+    }
+    fitView();
+  }
+
+  function clearBg() {
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.28, 20, W * 0.5, H * 0.38, Math.max(W, H) * 0.75);
+    g.addColorStop(0, "#15233c");
+    g.addColorStop(1, "#0b1220");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function strokeLine(op) {
+    const [x0, y0] = toScreen(op.x0, op.y0);
+    const [x1, y1] = toScreen(op.x1, op.y1);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.strokeStyle = "rgba(126,224,200,0.16)";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.strokeStyle = "#7ee0c8";
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
+  function fillTri(op) {
+    const pts = op.pts;
+    ctx.beginPath();
+    const p0 = toScreen(pts[0][0], pts[0][1]);
+    ctx.moveTo(p0[0], p0[1]);
+    for (let i = 1; i < pts.length; i++) {
+      const p = toScreen(pts[i][0], pts[i][1]);
+      ctx.lineTo(p[0], p[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = hueFill(op.hue);
+    ctx.strokeStyle = hueStroke(op.hue);
+    ctx.lineWidth = 0.8;
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  function drawTurtle(x, y, h) {
+    const [sx, sy] = toScreen(x, y);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(-h * Math.PI / 180);
+    ctx.beginPath();
+    ctx.arc(-2, 0, 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#2ecc8a";
+    ctx.fill();
+    ctx.strokeStyle = "#d9ffe9";
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-5, 7);
+    ctx.lineTo(-5, -7);
+    ctx.closePath();
+    ctx.fillStyle = "#f7c579";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawAll(upto) {
+    clearBg();
+    let last = { x: 0, y: 0, h: 0 };
+    const n = Math.min(upto, ops.length);
+    for (let i = 0; i < n; i++) {
+      const op = ops[i];
+      if (op.t === "line") {
+        strokeLine(op);
+        last = { x: op.x1, y: op.y1, h: op.h };
+      } else if (op.t === "tri") {
+        fillTri(op);
+        last = { x: op.x, y: op.y, h: op.h };
+      } else if (op.t === "goto") {
+        last = { x: op.x, y: op.y, h: op.h };
+      }
+    }
+    if (n < ops.length) drawTurtle(last.x, last.y, last.h);
+    else if (n > 0) drawTurtle(last.x, last.y, last.h);
+    status.textContent = n + " / " + ops.length + " steps";
+  }
+
+  function stepsPerFrame() {
+    const s = +speedEl.value;
+    return [6, 28, 140, 600, 3500][s] || 28;
+  }
+
+  function tick() {
+    if (!playing) return;
+    playIndex += stepsPerFrame();
+    if (playIndex >= ops.length) {
+      playIndex = ops.length;
+      playing = false;
+      drawAll(playIndex);
+      return;
+    }
+    drawAll(playIndex);
+    requestAnimationFrame(tick);
+  }
+
+  function replay() {
+    resize();
+    build();
+    playIndex = 0;
+    playing = true;
+    clearBg();
+    requestAnimationFrame(tick);
+  }
+
+  function finish() {
+    playing = false;
+    playIndex = ops.length;
+    drawAll(playIndex);
+  }
+
+  document.getElementById("draw").onclick = replay;
+  document.getElementById("skip").onclick = finish;
+  document.getElementById("save").onclick = () => {
+    const a = document.createElement("a");
+    a.download = "hybrid_fractal.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  };
+  window.addEventListener("resize", () => {
+    const keep = playIndex;
+    const was = playing;
+    playing = false;
+    resize();
+    build();
+    playIndex = Math.min(keep, ops.length);
+    drawAll(playIndex || ops.length);
+    if (was) { playing = true; requestAnimationFrame(tick); }
+  });
+
+  resize();
+  build();
+  replay();
+})();
+</script>
+</body>
+</html>

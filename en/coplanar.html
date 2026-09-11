@@ -1,0 +1,485 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>From "Are These Four Points Coplanar" to Linear Algebra · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="High school's collinear, coplanar, and the space vector basis theorem, translated into rank, span, and linear independence. One problem, three methods, walked all the way through." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.plate { margin: 1.8rem 0; }
+			.plate img {
+				display: block; width: 100%; border: 1px solid #2a3c5e; border-radius: 4px;
+				background: #0d1626;
+			}
+			.plate figcaption {
+				font-size: 0.85em; color: #7f8790; margin-top: 0.6rem; text-align: center;
+			}
+			.term { color: #7ee0c8; font-weight: 600; }
+			.ladder { border-left: 4px solid #f0a63c; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.ladder h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.ladder p { margin: 0; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>From "are these four points coplanar" to linear algebra</h1>
+							<p>One high-school question, walked all the way to rank, span, and determinants<br />
+							Running example: are $A(6,0,0)$, $B(4,1,1)$, $C(0,0,6)$, $D(2,2,2)$ coplanar?</p>
+						</header>
+
+						<div class="eqbox" style="border-left-color:#f0a63c">
+							<span class="lbl">What this page is for</span><br />
+							<a href="vectors.html" style="color:#8fe3ed">Vectors &amp; Space</a> covered the dot product,
+							cross product, and determinants. <a href="matrix.html" style="color:#8fe3ed">Matrices &amp;
+							Transformations</a> covered rank and the four subspaces.<br />
+							<strong>The step in between — what "coplanar" from school actually corresponds to at
+							university — is what this page fills in.</strong>
+						</div>
+
+						<h2>First, is this even linear algebra?</h2>
+
+						<p>Yes — and it's the most central part of it. The "vectors" you learn in high school are,
+						almost exactly, linear algebra specialised to $n=3$. The textbook uses geometric language
+						to keep things intuitive; university swaps in a more abstract vocabulary for the same ideas.</p>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th>What school calls it</th><th>What linear algebra calls it</th><th>The essence</th></tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>$\vec b=\lambda\vec a$, two vectors are collinear</td>
+										<td>$\vec a,\vec b$ are <strong>linearly dependent</strong></td>
+										<td>rank 1</td>
+									</tr>
+									<tr>
+										<td>$\vec p=x\vec a+y\vec b$, three vectors are coplanar</td>
+										<td>$\vec p$ lies in the <strong>subspace spanned by</strong> $\vec a,\vec b$</td>
+										<td>rank 2</td>
+									</tr>
+									<tr>
+										<td>the space vector basis theorem</td>
+										<td>$\{\vec a,\vec b,\vec c\}$ forms a <strong>basis</strong> for $\mathbb R^3$</td>
+										<td>rank 3</td>
+									</tr>
+									<tr>
+										<td>$x\vec a+y\vec b+z\vec c$</td>
+										<td><strong>linear combination</strong></td>
+										<td>—</td>
+									</tr>
+									<tr>
+										<td>testing coplanarity (guessing coefficients)</td>
+										<td>checking whether the <strong>determinant</strong> is zero, or finding the <strong>rank</strong></td>
+										<td>same test</td>
+									</tr>
+									<tr>
+										<td>dot product $\vec a\cdot\vec b$</td>
+										<td><strong>inner product</strong>, written $\mathbf a^{\mathsf T}\mathbf b$</td>
+										<td>—</td>
+									</tr>
+									<tr>
+										<td>normal vector $\vec n$</td>
+										<td>the plane's <strong>orthogonal complement</strong></td>
+										<td>—</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<blockquote>Linear algebra isn't new knowledge. <strong>It's the same things you already
+						know, translated into a language that generalises to $n$ dimensions.</strong></blockquote>
+
+						<p>So in university language, this problem is just: <em>check whether the rank of three
+						vectors is less than 3</em>. School doesn't teach "rank" or "determinant," so it's stuck
+						guessing coefficients by hand — which is exactly why the same question feels roundabout in
+						school and takes one line at university.</p>
+
+						<hr class="major" />
+
+						<h2>Starting point: what can a linear combination sweep out</h2>
+
+						<p>Given a few vectors, scale each by a number and add them up — that's a
+						<span class="term">linear combination</span>:</p>
+
+						<div class="eqbox" style="text-align:center">
+							$\vec p=x\vec a+y\vec b+z\vec c$
+						</div>
+
+						<p>The coefficients can be any real numbers. Linear algebra, at bottom, studies exactly one
+						thing: <strong>fix a handful of vectors, let the coefficients range over every real number —
+						what shape do you sweep out?</strong></p>
+
+						<figure class="plate">
+							<img src="images/cop01.png" alt="Rank 1, 2, 3 sweeping out a line, a plane, and all of space" />
+							<figcaption>Same operation — add up scaled vectors — but a different number of vectors sweeps out a different shape.</figcaption>
+						</figure>
+
+						<p>What gets swept out is called the <span class="term">span</span>, and its dimension is
+						the <span class="term">rank</span> of that set of vectors. Three geometric ideas turn out to
+						be one:</p>
+
+						<div class="eqbox">
+							<span class="lbl">Three phrasings, one fact</span><br />
+							rank = 1　→　sweeps out a line　→　the vectors are <strong>collinear</strong><br />
+							rank = 2　→　sweeps out a plane　→　the vectors are <strong>coplanar</strong><br />
+							rank = 3　→　sweeps out all of space　→　<strong>not coplanar</strong>, they form a basis
+						</div>
+
+						<p><strong>Coplanarity is a rank question.</strong> That's the first key sentence on this page.</p>
+
+						<figure class="plate">
+							<img src="images/cop02.png" alt="Collinear: every point strung along the same line" />
+							<figcaption>The one-dimensional case: $\vec b=\lambda\vec a$, and letting $\lambda$ range over the reals sweeps out a line through the origin.</figcaption>
+						</figure>
+
+						<figure class="plate">
+							<img src="images/cop03.png" alt="Every point in a plane corresponds to a unique pair of coordinates" />
+							<figcaption>The two-dimensional case: two non-collinear vectors span a plane, and every point in it has a unique pair of coordinates $(x,y)$.</figcaption>
+						</figure>
+
+						<hr class="major" />
+
+						<h2>Where "coefficients sum to 1" comes from</h2>
+
+						<p>Testing four points for coplanarity, textbooks often require $x+y+z=1$. Where does that
+						condition come from?</p>
+
+						<figure class="plate">
+							<img src="images/cop04.png" alt="Free coefficients sweep all of space; the sum-to-one condition cuts out the plane through the three points" />
+							<figcaption>Left: coefficients free, sweeping all of space. Right: adding "coefficients sum to 1" cuts out exactly the plane through A, B and C.</figcaption>
+						</figure>
+
+						<div class="ladder">
+							<h3>The difference is whether it passes through the origin</h3>
+							<p>With free coefficients, $x\vec a+y\vec b+z\vec c$ sweeps out an entire subspace
+							<strong>through the origin</strong>. But asking whether four points are coplanar is asking
+							"is D on the plane determined by A, B and C" — and that plane <strong>generally does not
+							pass through the origin</strong>.</p>
+						</div>
+
+						<p>Add $x+y+z=1$ and the combination turns from a <span class="term">linear combination</span>
+						into an <span class="term">affine combination</span>: it no longer sweeps out a subspace
+						through the origin, but exactly the plane through those three points.
+						<strong>That "1" is the ticket that shifts the subspace into position.</strong></p>
+
+						<p>This is the same structure as "general solution = particular solution + homogeneous
+						solution" from the fitting page: the homogeneous part slides around inside the plane, the
+						particular solution moves the whole plane to where it belongs.</p>
+
+						<hr class="major" />
+
+						<h2>A different route: coordinates and a normal vector</h2>
+
+						<p>Instead of guessing coefficients, you can write down the plane's equation directly.</p>
+
+						<figure class="plate">
+							<img src="images/cop05.png" alt="A normal vector is perpendicular to any vector in the plane, so the dot product is zero" />
+							<figcaption>Point $P$ is on the plane $\iff$ $\overrightarrow{P_0P}$ lies in the plane $\iff$ $\vec n\cdot\overrightarrow{P_0P}=0$.</figcaption>
+						</figure>
+
+						<p>A normal vector is perpendicular to <em>every</em> vector in the plane, and two nonzero
+						vectors are perpendicular exactly when their dot product is zero. Expand it and you get the
+						general form:</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#6ed6a0">
+							$A(x-x_0)+B(y-y_0)+C(z-z_0)=0
+							\quad\Longrightarrow\quad
+							Ax+By+Cz+D=0$
+						</div>
+
+						<div class="ladder" style="border-left-color:#6ed6a0">
+							<h3>While we're here: why its solutions have to form a plane</h3>
+							<p>Three-dimensional space has 3 degrees of freedom; one linear constraint removes 1,
+							leaving 2 — geometrically, exactly a two-dimensional surface. And because the equation is
+							degree one with no curved terms, that surface has no bend in it.
+							<strong>So it's a plane, not some curved shape.</strong></p>
+						</div>
+
+						<figure class="plate">
+							<img src="images/cop06.png" alt="The plane x+y+z=6 determined by A, B, C in the running example" />
+							<figcaption>Back to the example: the plane through $A$, $B$, $C$ is $x+y+z=6$. Plug in $D(2,2,2)$: $2+2+2=6$ ✓ — coplanar.</figcaption>
+						</figure>
+
+						<hr class="major" />
+
+						<h2>A third route: the determinant</h2>
+
+						<p>The quickest method turns "coplanar" straight into a single calculation.</p>
+
+						<figure class="plate">
+							<img src="images/cop07.png" alt="Three vectors with volume when not coplanar, flattened to zero volume when coplanar" />
+							<figcaption>The parallelepiped spanned by three vectors: real volume when they're not coplanar; flattened to zero when they are.</figcaption>
+						</figure>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#f0a63c">
+							three vectors coplanar　$\iff$　the parallelepiped is flattened　$\iff$　$\det=0$　$\iff$　rank $<3$
+						</div>
+
+						<figure class="plate">
+							<img src="images/cop08.png" alt="The diagonal rule for a 3×3 determinant" />
+							<figcaption>The diagonal rule (Sarrus' rule) for a 3×3 determinant. <strong>Only works for order three</strong> — from order four up you have to expand by row.</figcaption>
+						</figure>
+
+						<p>The absolute value of a determinant is "volume" in the relevant dimension: order two is
+						area, order three is volume, order four is a four-dimensional hypervolume. Higher orders
+						can't use the diagonal rule; you expand by row instead — a $4\times4$ splits into four
+						$3\times3$'s, which split again into $2\times2$'s.<br />
+						Worked through in → <a href="vectors.html">Vectors &amp; Space</a></p>
+
+						<hr class="major" />
+
+						<h2>Three methods, one problem</h2>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th>Method</th><th>What you do</th><th>Who it suits</th></tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td><strong>Inspection</strong></td>
+										<td>guess coefficients: find $x,y$ so that $\overrightarrow{AD}=x\overrightarrow{AB}+y\overrightarrow{AC}$</td>
+										<td>high school, fastest, but relies on a good eye</td>
+									</tr>
+									<tr>
+										<td><strong>Coordinates</strong></td>
+										<td>find the plane's equation, then substitute the fourth point to check</td>
+										<td>reliable, every step explicit, no guessing involved</td>
+									</tr>
+									<tr>
+										<td><strong>Determinant</strong></td>
+										<td>arrange the three vectors into a matrix, check whether $\det$ is zero</td>
+										<td>the standard university method, one line to an answer</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<p>These three methods aren't three separate things — <strong>they're three ways of writing
+						the same test</strong>. Coefficients exist $\iff$ the point lies in the span
+						$\iff$ rank is less than 3 $\iff$ the determinant is zero. High school reaches for the first
+						one because the toolkit is limited, not because it's somehow more fundamental.</p>
+
+						<hr class="major" />
+
+						<h2>Vocabulary, quick reference</h2>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead><tr><th>Term</th><th>In one line</th><th>In this problem</th></tr></thead>
+								<tbody>
+									<tr><td>linear combination</td><td>scale each vector and add</td><td>$x\overrightarrow{AB}+y\overrightarrow{AC}$</td></tr>
+									<tr><td>span</td><td>the shape swept out by every possible combination</td><td>the plane determined by $A,B,C$</td></tr>
+									<tr><td>rank</td><td>the dimension of the span</td><td>2 in this problem, hence coplanar</td></tr>
+									<tr><td>linearly dependent</td><td>one vector is redundant</td><td>$\overrightarrow{AD}$ can be written using the other two</td></tr>
+									<tr><td>basis</td><td>a set of vectors that spans exactly, with none spare</td><td>these three vectors don't form one here</td></tr>
+									<tr><td>affine combination</td><td>a linear combination whose coefficients sum to 1</td><td>shifts a subspace off the origin</td></tr>
+									<tr><td>orthogonal complement</td><td>every direction perpendicular to a subspace</td><td>the plane's normal vector $\vec n$</td></tr>
+								</tbody>
+							</table>
+						</div>
+
+						<hr class="major" />
+
+						<h2>One step further</h2>
+
+						<p>By the end of this one problem you've already used every core word from the matrices page:
+						span, rank, linear dependence, basis. The next step is only extending them from "three
+						vectors" to "however many vectors, in however many dimensions" — same names, same picture,
+						just $3$ swapped for $n$.</p>
+
+						<ul class="actions">
+							<li><a href="vectors.html" class="button">Vectors &amp; Space<br /><span class="btn-en">Dot, cross, determinant</span></a></li>
+							<li><a href="matrix.html" class="button primary">Matrices &amp; Transformations<br /><span class="btn-en">Rank &amp; four subspaces</span></a></li>
+						</ul>
+
+						<h3>Full notes</h3>
+						<p>What's on the page is the spine. The full version runs to about 18,000 characters with
+						step-by-step derivations, worked examples across all three methods, and practice questions
+						with answers, all eight figures embedded — Markdown, opens or prints in any editor.</p>
+
+						<ul class="actions">
+							<li><a href="#" class="button primary" data-gated="../assets/data/coplanar-notes.md">Download full notes<br /><span class="btn-en">Markdown, ~18,000 characters</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

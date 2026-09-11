@@ -1,0 +1,583 @@
+<!DOCTYPE HTML>
+<!--
+	Forty by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html lang="en">
+	<head>
+		<title>Fitting &amp; Least Squares · Mathematics You Can Turn</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="When b can't reach the column space, find the closest point instead. Closest means the residual is perpendicular — and perpendicular, written as an equation, is the normal equation." />
+		<link rel="stylesheet" href="../assets/css/main.css" />
+		<style>
+			.btn-en { font-size: 0.78em; opacity: 0.72; letter-spacing: 0.02em; }
+			.eqbox {
+				background: #16223a; color: #e6ecf5;
+				border-left: 3px solid #b388ff; border-radius: 3px;
+				padding: 1.2rem 1.5rem; margin: 1.6rem 0; overflow-x: auto;
+				font-size: 0.95em; line-height: 2;
+			}
+			.eqbox .lbl { color: #93a4c0; font-size: 0.85em; }
+			.eqbox strong { color: #f7c579; }
+			.concept {
+				border: 1px solid #dfe3e8; border-left: 4px solid #b388ff;
+				border-radius: 4px; padding: 1.4rem 1.6rem 0.9rem; margin: 1.8rem 0;
+			}
+			.concept h3 { margin: 0 0 1rem; }
+			.concept dl { margin: 0; }
+			.concept dt {
+				font-size: 0.72em; letter-spacing: 0.15em; text-transform: uppercase;
+				color: #8a94a6; margin-top: 0.9rem; font-weight: 600;
+			}
+			.concept dd { margin: 0.15rem 0 0; line-height: 1.75; }
+			.concept .zero { color: #c0392b; }
+			.chain { border-left: 4px solid #6ed6a0; padding: 0.2rem 0 0.2rem 1.4rem; margin: 2rem 0; }
+			.chain h3 { margin: 0 0 0.4rem; font-size: 1.05em; }
+			.chain p { margin: 0; }
+			.gate {
+				position: fixed; inset: 0; z-index: 10000;
+				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+				background: rgba(13, 22, 38, 0.55);
+				backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+			}
+			.gate[hidden] { display: none; }
+			.gate-card {
+				background: #16223a; color: #e6ecf5; border: 1px solid #2a3c5e; border-radius: 5px;
+				padding: 2.1rem 2.25rem 1.8rem; max-width: 27rem; width: 100%;
+				box-shadow: 0 1.4rem 3.5rem rgba(0,0,0,.45); text-align: center;
+			}
+			.gate-card h3 { margin: 0 0 0.3rem; color: #f7c579; font-size: 1.15em; }
+			.gate-en { opacity: 0.55; font-size: 0.85em; margin: 0 0 0.4rem; }
+			.gate-hint { font-size: 0.85em; color: #93a4c0; margin: 0.9rem 0 1.3rem; line-height: 1.8; }
+			.gate-card input[type="text"] {
+				background: #0d1626; border: 1px solid #2a3c5e; color: #e6ecf5; border-radius: 3px;
+				text-align: center; font-size: 1.15em; letter-spacing: 0.08em; margin-bottom: 0.8rem;
+			}
+			.gate-card input[type="text"]:focus { border-color: #b388ff; box-shadow: none; }
+			.gate-err { color: #ef6a5e; font-size: 0.85em; margin: 0 0 0.8rem; }
+			.gate-err[hidden] { display: none; }
+			.gate-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+			.gate-actions .button { margin: 0; }
+			.gate-actions .button:not(.primary) { color: #93a4c0; box-shadow: inset 0 0 0 1px #2a3c5e; }
+		</style>
+		<script>
+			window.MathJax = {
+				tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+				options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+			};
+		</script>
+		<script id="MathJax-script" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<div id="wrapper">
+
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Mathematics You Can Turn</strong> <span>by Camille</span></a>
+				<nav><a href="#menu">Menu</a></nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="vectors.html">Vectors &amp; Space</a></li>
+					<li><a href="matrix.html">Matrices &amp; Transformations</a></li>
+					<li><a href="calculus.html">Change &amp; Gradients</a></li>
+					<li><a href="fitting.html">Fitting &amp; Least Squares</a></li>
+					<li><a href="neural.html">Neural Networks</a></li>
+					<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
+					<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
+					<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+
+						<header class="major">
+							<h1>Fitting &amp; Least Squares</h1>
+							<p>When $\mathbf b$ can't reach the column space, the equation has no solution —
+							not because anything went wrong, it was simply out of range.<br />
+							So settle for the next best thing: find the closest point you actually can reach.</p>
+						</header>
+
+						<div class="eqbox" style="border-left-color:#f0a63c">
+							<span class="lbl">Following on</span><br />
+							The last section showed $A\mathbf x=\mathbf b$ has a solution exactly when $\mathbf b$
+							lies in the column space.<br />
+							<strong>This section is about what to do when it doesn't — and in practice, real data
+							almost never lands exactly where you'd want.</strong>
+						</div>
+
+						<h2>Where the problem comes from</h2>
+
+						<p>The servo calibration page measured 61 points and wanted to fit a cubic curve — that's
+						solving for 4 coefficients. Written as an equation system, that's <strong>61 equations,
+						4 unknowns</strong>.</p>
+
+						<p>Far more equations than unknowns — this is called <strong>overdetermined</strong>. Unless
+						all 61 points happened to land exactly on the same cubic curve — with measurement noise and
+						mechanical backlash, that's not going to happen — there's <em>no exact solution</em>.</p>
+
+						<p>But "no solution" clearly isn't the answer anyone wants. The servo still has to turn;
+						that function still has to go in the firmware. So the question needs rephrasing:
+						<strong>since $\mathbf b$ is out of reach, which reachable point is closest?</strong></p>
+
+						<hr class="major" />
+
+						<h2>The closest point is the foot of a perpendicular</h2>
+
+						<span class="image main"><img src="images/fit1_projection.png" alt="b not in the column space; the closest point is a projection, and the residual is perpendicular" /></span>
+
+						<p>Left: $\mathbf b$ hangs outside the column space — no adjustment of $\mathbf x$ ever
+						reaches it.<br />
+						Right: the closest point in the column space to $\mathbf b$ is its <strong>foot of the
+						perpendicular</strong> onto that plane.</p>
+
+						<p>Why a perpendicular foot? Because if the residual $\mathbf r=\mathbf b-A\hat{\mathbf x}$
+						weren't perpendicular to the column space, it would still have some component lying inside
+						it — nudge along that direction and you'd get closer still.
+						<strong>Once you can't nudge any further, only the perpendicular component is left.</strong></p>
+
+						<div class="chain">
+							<h3>The whole chain of reasoning, five steps</h3>
+							<p>$A\mathbf x\approx\mathbf b$
+							$\;\to\;$ the closest point is the projection $A\hat{\mathbf x}=\mathrm{proj}_{C(A)}\mathbf b$
+							$\;\to\;$ residual $\mathbf r=\mathbf b-A\hat{\mathbf x}$
+							$\;\to\;$ $\mathbf r\perp C(A)$, meaning $\mathbf r$ is perpendicular to <em>every</em>
+							column of $A$
+							$\;\to\;$ written as a matrix, that's $A^{\mathsf T}\mathbf r=\mathbf 0$</p>
+						</div>
+
+						<p>Substitute $\mathbf r=\mathbf b-A\hat{\mathbf x}$ into that last step:</p>
+
+						<div class="eqbox" style="text-align:center;border-left-color:#6ed6a0">
+							$A^{\mathsf T}(\mathbf b-A\hat{\mathbf x})=\mathbf 0
+							\quad\Longrightarrow\quad
+							\boxed{A^{\mathsf T}A\,\hat{\mathbf x}=A^{\mathsf T}\mathbf b}$
+							<br /><span class="lbl">The Normal Equations</span>
+						</div>
+
+						<p>A geometric condition — "perpendicular" — turns, step by step, into an equation you can
+						just solve. And the algebraic form of "perpendicular" is <strong>a dot product equal to
+						zero</strong> — the thing the first section covered, cashed in right here.</p>
+
+						<hr class="major" />
+
+						<h2>Three roads, one equation</h2>
+
+						<p>This equation doesn't have just one derivation. Three completely different roads arrive
+						at the same destination:</p>
+
+						<span class="image main"><img src="images/fit3_three_views.png" alt="Calculus, linear algebra, and geometry all derive the same normal equation" /></span>
+
+						<div class="table-wrapper">
+							<table class="alt">
+								<thead>
+									<tr><th>Viewpoint</th><th>How it's done</th><th>Upside</th><th>Cost</th></tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td><strong>Calculus</strong></td>
+										<td>Take the partial derivative of the residual sum of squares $S$ with
+										respect to each coefficient, set each to zero</td>
+										<td>Only needs high-school calculus, easy for anyone to follow</td>
+										<td>Gets unwieldy as the number of coefficients grows</td>
+									</tr>
+									<tr>
+										<td><strong>Linear algebra</strong></td>
+										<td>Differentiate with respect to the whole vector,
+										$\nabla_{\mathbf x}\lVert A\mathbf x-\mathbf b\rVert^2=0$</td>
+										<td>One step to the matrix form, regardless of how many coefficients</td>
+										<td>Requires accepting vector calculus notation first</td>
+									</tr>
+									<tr>
+										<td><strong>Geometry</strong></td>
+										<td>The residual is perpendicular to the column space</td>
+										<td>One line, and you can actually see it</td>
+										<td>Requires understanding the column space first</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<p>The fact that three completely unrelated approaches converge on the same equation is
+						itself worth noticing: <strong>when a formula can be derived from three independent
+						directions, it's usually caught hold of something real, not just a trick.</strong></p>
+
+						<hr class="major" />
+
+						<h2>But A doesn't have an inverse</h2>
+
+						<p>Here's a spot where almost everyone gets stuck. If you're solving $A\mathbf x=\mathbf b$,
+						why not just multiply both sides by $A^{-1}$?</p>
+
+						<p>Because <strong>$A$ here is 61×4, not square, and simply has no inverse</strong>. An
+						inverse means being able to undo a transformation exactly as it came — and $A$ squeezes a
+						4-dimensional space into a thin 4-dimensional slice sitting inside 61-dimensional space.
+						Almost every vector in that 61-dimensional space is out of reach; there's nothing to undo.</p>
+
+						<span class="image main"><img src="images/fit2_squeeze.png" alt="Left-multiplying by A transpose squeezes 61 equations down to 3" /></span>
+
+						<p>The clever part of the normal equation is that it <strong>splits the job into two
+						steps</strong>:</p>
+
+						<div class="chain" style="border-left-color:#f0a63c">
+							<h3>Step one: $A^{\mathsf T}$ shrinks the number of equations</h3>
+							<p>Left-multiply by $A^{\mathsf T}$ and 61 equations become 4. <em>Any</em> matrix can
+							do this step — no inverse required. It's just taking the dot product of each column
+							with the residual.</p>
+						</div>
+
+						<div class="chain" style="border-left-color:#6ed6a0">
+							<h3>Step two: $(A^{\mathsf T}A)^{-1}$ solves out the coefficients</h3>
+							<p>After the squeeze, $A^{\mathsf T}A$ is 4×4 — <em>this</em> is the step that needs an
+							inverse. And as long as $A$'s columns are linearly independent, it has one.</p>
+						</div>
+
+						<div class="eqbox">
+							<span class="lbl">One sentence to remember it by</span><br />
+							$A^{\mathsf T}$ does the job of shrinking the equations; $(A^{\mathsf T}A)^{-1}$ does the
+							job of solving for the coefficients.<br />
+							<strong>$A$ itself never had an inverse, because there was never any "undoing the whole
+							61-dimensional transformation" to be done.</strong>
+						</div>
+
+						<p>Put both steps together under one symbol and you get the <strong>pseudoinverse</strong>
+						$A^{+}=(A^{\mathsf T}A)^{-1}A^{\mathsf T}$. The "pseudo" in the name is exactly this: it's
+						not a true inverse, just the best possible undoing within the range you can actually reach.</p>
+
+						<hr class="major" />
+
+						<h2>A matrix is not a vector</h2>
+
+						<p>Worth clearing up one thing in passing. $A$ is a matrix, not a vector and not a pile of
+						loose numbers — it's <strong>a stack of column vectors</strong>.</p>
+
+						<span class="image main"><img src="images/photo_toast.jpg" alt="A loaf of bread as an analogy for matrices, column vectors, column space, and rank" /></span>
+
+						<p>The whole loaf is the matrix $A$. Slice it once, vertically, and you get one slice — a
+						<strong>column vector</strong>. Everything those slices can span is the
+						<strong>column space</strong>, and <strong>the number of genuinely distinct slices is the
+						rank</strong> — two identical slices only count once.</p>
+
+						<p>One more thing worth flagging: the $\mathbf 0$ in $A\mathbf x=\mathbf 0$ is
+						<strong>not the number zero, it's the zero vector</strong>. It stands for $m$ separate
+						equals signs, each with a zero on the right — not one line where "everything added up
+						comes to zero." This distinction matters a lot when you're checking for linear dependence.</p>
+
+						<hr class="major" />
+
+						<h2>Four ideas</h2>
+
+						<div class="concept">
+							<h3>Residual</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$\mathbf r=\mathbf b-A\hat{\mathbf x}$, the gap between the measured value and
+								the fitted value.</dd>
+								<dt>What it measures</dt>
+								<dd>The part the model can't explain. It's <strong>always perpendicular to the
+								column space</strong> — if it weren't, the fit hasn't been optimised yet.</dd>
+								<dt>Where it sits</dt>
+								<dd>$\mathbf b$ splits into two halves: one lies in the column space (what the model
+								can explain), the other is perpendicular to it (what it can't). That split is unique.</dd>
+								<dt>When it's zero</dt>
+								<dd class="zero">The data happens to sit exactly on the model — $\mathbf b$ was
+								already in the column space. Almost never happens with real data.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#f0a63c">
+							<h3>Overdetermined</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>More equations than unknowns. Servo calibration is 61 equations, 4 unknowns.</dd>
+								<dt>What it measures</dt>
+								<dd>Data being "richer" than the model. That richness isn't a flaw — it's exactly
+								what fights back against noise.</dd>
+								<dt>Where it sits</dt>
+								<dd>Contrasted with <strong>exactly determined</strong> (equations = unknowns,
+								unique solution) and <strong>underdetermined</strong> (fewer equations than
+								unknowns, infinitely many solutions). The S-curve's 6 conditions and 6 coefficients
+								is exactly determined.</dd>
+								<dt>Flip it around</dt>
+								<dd class="zero">Fewer data points than coefficients, and the fitted curve passes
+								through every point perfectly — but that isn't fitting, that's overfitting.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#6ed6a0">
+							<h3>Normal Equations</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>$A^{\mathsf T}A\hat{\mathbf x}=A^{\mathsf T}\mathbf b$. "Normal" here means
+								"perpendicular," not "ordinary."</dd>
+								<dt>What it measures</dt>
+								<dd>It packages up the $n$ conditions "the residual is perpendicular to every
+								column" into a single system of equations.</dd>
+								<dt>Where it sits</dt>
+								<dd>$A^{\mathsf T}A$ is exactly the Gram matrix from the previous section —
+								symmetric, positive semidefinite.
+								$\mathbf x^{\mathsf T}A^{\mathsf T}A\mathbf x=\lVert A\mathbf x\rVert^2$ — that's the
+								whole reason it exists.</dd>
+								<dt>When the solution isn't unique</dt>
+								<dd class="zero">$A$'s columns are linearly dependent, $A^{\mathsf T}A$ isn't
+								invertible. There's redundancy among the variables in your data, and a numerical
+								library will hand you the minimum-norm solution.</dd>
+							</dl>
+						</div>
+
+						<div class="concept" style="border-left-color:#ef6a5e">
+							<h3>Condition Number</h3>
+							<dl>
+								<dt>What it is</dt>
+								<dd>A measure of how close a matrix is to singular. The larger it is, the more
+								sensitive the solution is to small changes in the input.</dd>
+								<dt>Why it matters here</dt>
+								<dd>Because the condition number of $A^{\mathsf T}A$ is the <strong>square</strong>
+								of $A$'s. A problem that was reasonably well-behaved can become unstable the moment
+								you multiply by the transpose.</dd>
+								<dt>Practical advice</dt>
+								<dd>Don't actually compute $(A^{\mathsf T}A)^{-1}$ directly. Numerical libraries
+								solve least squares via QR decomposition or SVD, sidestepping the explicit inverse
+								and staying far more stable. In NumPy that's <code>np.linalg.lstsq</code>.</dd>
+								<dt>How to notice it</dt>
+								<dd class="zero">If fitted coefficients swing wildly with tiny changes in the data,
+								this is usually why — not a problem with the data itself. Worth watching for: the
+								servo calibration's cubic coefficients span eight orders of magnitude.</dd>
+							</dl>
+						</div>
+
+						<hr class="major" />
+
+						<h2>Back to the servo</h2>
+
+						<p>The cubic polynomial on the servo calibration page was solved exactly this way: a 61×4
+						design matrix $A$, each row $[1,\ r,\ r^2,\ r^3]$, $\mathbf b$ the 61 measured angles. Solve
+						$A^{\mathsf T}A\hat{\mathbf c}=A^{\mathsf T}\mathbf b$, get four coefficients, drop them into
+						the firmware.</p>
+
+						<p>That page also did something this section calls for — <strong>looking at the
+						residual</strong>. Fitting without checking the residual only tells you "how good this can
+						get," never "why it can't get any better." It turned out the residual, 0.62°, was four
+						times the measurement noise floor, and mechanical backlash, 2.07°, was three times larger
+						still than the residual.</p>
+
+						<blockquote>Least squares gives you "the best solution under this model" —<br />
+						not "the best solution to this problem." <strong>Pick the wrong model and least squares will
+						hand you, with total precision, the best possible wrong answer.</strong></blockquote>
+
+						<hr class="major" />
+
+						<h2>A counter-example: when the basis functions can't reach far enough</h2>
+
+						<p>The servo data is nearly a straight line, so a quadratic fit and a small network land in
+						almost the same place — that's what the comparison further down this page shows. Which
+						raises an obvious question: <strong>if the data actually curved, would that still hold?</strong></p>
+
+						<p>So I built a second table to check. Same 194 rows, same columns, but for every
+						(axis, direction) group I multiplied <code>adc_mean</code> by an S-shaped gain built from a
+						sigmoid, then added noise scaled to <code>0.35 × adc_sd</code>:</p>
+
+<pre><code>SEED = 20260909
+rng = np.random.default_rng(SEED)
+
+z = 3.0 * (deg - deg.mean()) / deg.std()
+gain = 0.72 + 0.46 * sigmoid(z)          # sigmoid(z) = 1 / (1 + exp(-z))
+noise = rng.normal(0, 1, size=len(deg)) * (0.35 * adc_sd)
+
+adc_mean_new = adc_mean * gain + noise</code></pre>
+
+						<p>The angles and pulse widths stay untouched — only the ADC readings get bent into an S
+						and roughened up. Then fit both a quadratic least-squares curve and a 16-unit tanh network
+						to <code>deg → adc_mean</code>, same hyperparameters as before (learning rate 0.01, seed 42,
+						50,000 epochs).</p>
+
+						<span class="image main"><img src="images/fit_counter1_linear.png" alt="On nearly-linear data, least squares and the network land almost on top of each other" /></span>
+
+						<p>On the original, nearly-linear table: least squares <strong>1.588°</strong>, the network
+						<strong>1.507°</strong>. Essentially tied — a fixed quadratic already covers this shape
+						fine.</p>
+
+						<span class="image main"><img src="images/fit_counter2_sshape.png" alt="On S-shaped data, the fixed quadratic can't bend enough, the network can" /></span>
+
+						<p>On the S-shaped, noisy table: least squares <strong>146.5 ADC</strong>, the network
+						<strong>110.6 ADC</strong> — a real gap this time, not a rounding difference.</p>
+
+						<span class="image main"><img src="images/fit_counter3_residual.png" alt="The least-squares residual keeps an S-shaped bulge; the network's residual is flatter" /></span>
+
+						<p>The residual plot shows exactly why. Least squares only has three degrees of freedom —
+						one bend, fixed in shape. The S-curve needs to bend one way and then the other, and a
+						parabola simply can't do both. What's left over in the green residual is a visible bulge —
+						the exact shape of curvature a quadratic has no room to absorb. The sixteen tanh units, on
+						the other hand, can each bend at their own point and by their own amount, so they can
+						follow the S around.</p>
+
+						<div class="chain" style="border-left-color:#b388ff">
+							<h3>What this experiment does and doesn't show</h3>
+							<p>Two runs, two tables, one seeded random process — this shows what happened
+							<em>here</em>, not a general law about every network or every dataset. All 194 points
+							were trained together without splitting by axis or direction, so the residual mixes
+							genuine fitting error with the fact that the four groups don't perfectly line up with
+							each other to begin with. And the two RMSE numbers are in different units — degrees on
+							one table, ADC counts on the other — so 1.588 and 146.5 can't be compared to each other,
+							only each fit's own least-squares baseline.</p>
+						</div>
+
+						<p>Put together, the two tables make the point from earlier concrete rather than abstract:
+						<strong>when the data is roughly the shape your basis functions can already produce, least
+						squares and a network land in the same place. Force the data to bend somewhere a fixed
+						basis can't follow, and the network's flexibility starts to earn its keep.</strong> Neither
+						table proves which method is "better" — they show what each one is <em>for</em>.</p>
+
+						<hr class="major" />
+
+						<h2>What if I used a neural network on the original data</h2>
+
+						<span class="image main"><img src="images/fig5_ls_vs_nn.png" alt="Least squares compared with a small neural network on the real calibration data" /></span>
+
+						<p>Same 61 real calibration points from the servo page. Least squares:
+						<strong>0.621°</strong>, in one step. A small network, after thirty thousand epochs of
+						gradient descent: <strong>0.615°</strong>. Marginally better, at enormous cost.</p>
+
+						<p>Isn't this an argument against neural networks. It's an argument about knowing what you
+						know: <strong>when you already know the shape of a curve, writing that shape into the model
+						beats letting a network guess it.</strong> The electric potentiometer's voltage divider
+						response was always going to be low-order and smooth — three or four coefficients describe
+						it fine, and least squares finds them in one step with a uniqueness guarantee built in.
+						Networks earn their keep exactly where the S-curve experiment above put them: when you
+						genuinely don't know what shape to expect.</p>
+
+						<p>Worked through in → <a href="neural.html">Neural Networks</a></p>
+
+						<ul class="actions">
+							<li><a href="servo-calib.html" class="button">Build · Servo Calibration<br /><span class="btn-en">61 points, 4 coefficients</span></a></li>
+							<li><a href="matrix.html" class="button">Back to · Matrices &amp; Transformations<br /><span class="btn-en">Column space &amp; rank</span></a></li>
+						</ul>
+
+						<h3>Full derivation</h3>
+						<p>What's on the page is the spine. The full version includes step-by-step derivations
+						from all three viewpoints, a proof of $A^{\mathsf T}A$'s properties, condition numbers and
+						numerical stability, and the complete chain behind "why $A$ has no inverse but you can
+						still solve for the coefficients."</p>
+
+						<ul class="actions">
+							<li><a href="#" class="button primary" data-gated="../assets/data/least-squares-notes.md">Download full derivation<br /><span class="btn-en">Markdown</span></a></li>
+						</ul>
+
+						<!-- friendship code dialog -->
+						<div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+							<div class="gate-card">
+								<h3 id="gateTitle">Friendship code, please</h3>
+								<p class="gate-en">请输入友情码</p>
+								<p class="gate-hint">Hint: who said the line on the front page? His surname will do.<br />
+								<span class="gate-en">线索：首页那句话是谁说的？填他的姓。</span></p>
+								<input type="text" id="gateInput" autocomplete="off" spellcheck="false" aria-label="friendship code" />
+								<p class="gate-err" id="gateErr" hidden>Not quite — try again</p>
+								<div class="gate-actions">
+									<button type="button" class="button primary small" id="gateOk">Enter</button>
+									<button type="button" class="button small" id="gateCancel">Cancel</button>
+								</div>
+							</div>
+						</div>
+
+						<ul class="actions">
+							<li><a href="matrix.html" class="button">&larr; Previous: Matrices &amp; Transformations<br /><span class="btn-en">Matrices</span></a></li>
+							<li><a href="neural.html" class="button primary">Next: Neural Networks<br /><span class="btn-en">Neural Networks</span></a></li>
+						</ul>
+
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Mathematics You Can Turn</li>
+						<li>Camille Zhang · St. Catherine International School</li>
+						<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</footer>
+
+		</div>
+
+		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
+		<script src="../assets/js/main.js"></script>
+
+		<script>
+		(function () {
+			/* The friendship code lives on the line below — change it if you like.
+			   It is a polite door, not a lock: the code is visible in the page source. */
+			var CODE = "poincare";
+			var ALIASES = ["poincare", "poincaré", "庞加莱", "彭加勒"];
+			var gate = document.getElementById("gate");
+			if (!gate) return;
+			var input  = document.getElementById("gateInput");
+			var errMsg = document.getElementById("gateErr");
+			var okBtn  = document.getElementById("gateOk");
+			var cancel = document.getElementById("gateCancel");
+			var pending = null, passed = false, lastFocus = null;
+			function norm(v){ return (v||"").trim().toLowerCase().replace(/\s+/g,""); }
+			function accepted(v){
+				var n = norm(v);
+				if (n === norm(CODE)) return true;
+				for (var i=0;i<ALIASES.length;i++) if (n === norm(ALIASES[i])) return true;
+				return false;
+			}
+			function grab(url){
+				var a=document.createElement("a");
+				a.href=url; a.download=url.split("/").pop();
+				document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			}
+			function open_(){
+				lastFocus=document.activeElement;
+				gate.hidden=false; errMsg.hidden=true; input.value="";
+				setTimeout(function(){ input.focus(); },30);
+			}
+			function close_(){
+				gate.hidden=true; pending=null;
+				if(lastFocus&&lastFocus.focus) lastFocus.focus();
+			}
+			function submit(){
+				if(accepted(input.value)){
+					passed=true; var url=pending; close_(); if(url) grab(url);
+				}else{ errMsg.hidden=false; input.select(); }
+			}
+			Array.prototype.forEach.call(document.querySelectorAll("a[data-gated]"), function(a){
+				a.addEventListener("click", function(e){
+					e.preventDefault();
+					var url=a.getAttribute("data-gated");
+					if(passed){ grab(url); return; }
+					pending=url; open_();
+				});
+			});
+			okBtn.addEventListener("click", submit);
+			cancel.addEventListener("click", close_);
+			input.addEventListener("keydown", function(e){
+				if(e.key==="Enter"){ e.preventDefault(); submit(); }
+			});
+			document.addEventListener("keydown", function(e){
+				if(e.key==="Escape" && !gate.hidden) close_();
+			});
+			gate.addEventListener("click", function(e){ if(e.target===gate) close_(); });
+		})();
+		</script>
+
+	</body>
+</html>

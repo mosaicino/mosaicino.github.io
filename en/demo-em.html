@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dot &amp; Cross Products · Electromagnetism Interactive</title>
+<style>
+:root{
+  --field:#0f1826;
+  --panel:#16223a;
+  --panel-2:#1c2b47;
+  --line:#2a3c5e;
+  --fg:#e6ecf5;
+  --fg-dim:#93a4c0;
+  --amber:#f0a63c;
+  --amber-soft:#f7c579;
+  --cyan:#3ec8d8;
+  --cyan-soft:#8fe3ed;
+  --violet:#b388ff;
+  --coral:#ef6a5e;
+  --blue:#5aa9f0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 20% -10%, #1a2740 0%, transparent 60%),
+    radial-gradient(1000px 500px at 85% 110%, #16283a 0%, transparent 60%),
+    var(--field);
+  color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+}
+.masthead{
+  padding:22px 26px 14px;
+  border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 22px;
+}
+.masthead h1{
+  font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;
+  font-size:23px;font-weight:600;margin:0;letter-spacing:.01em;
+}
+.masthead p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:60ch}
+
+.stage{
+  display:grid;
+  grid-template-columns:1fr 168px 1fr;
+  gap:0;
+  align-items:stretch;
+}
+.side{padding:20px 24px 26px;min-width:0}
+.side.left{border-right:1px solid var(--line)}
+.side.right{border-left:1px solid var(--line)}
+
+.side-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.side-head h2{
+  font-family:Georgia,"Songti SC",serif;
+  font-size:18px;margin:0;font-weight:600;
+}
+.side.left .side-head h2{color:var(--amber-soft)}
+.side.right .side-head h2{color:var(--cyan-soft)}
+.side-head .eq{font-size:14px;color:var(--fg-dim)}
+.side > p.blurb{margin:0 0 14px;color:var(--fg-dim);font-size:13.5px;max-width:46ch}
+
+.viewport{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/3;
+  min-height:280px;
+  border:1px solid var(--line);
+  border-radius:3px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#0d1522 0%,#111d30 100%);
+  cursor:grab;
+  touch-action:none;
+}
+.viewport:active{cursor:grabbing}
+.viewport canvas{display:block;width:100%;height:100%}
+.hint{
+  position:absolute;left:10px;bottom:8px;
+  font-size:11.5px;color:#63748f;pointer-events:none;
+}
+
+.readout{
+  margin-top:14px;
+  display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+  border-top:1px solid var(--line);
+  padding-top:12px;
+}
+.readout .big{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:30px;font-variant-numeric:tabular-nums;line-height:1;
+}
+.side.left .readout .big{color:var(--amber)}
+.side.right .readout .big{color:var(--cyan)}
+.readout .unit{color:var(--fg-dim);font-size:13px;margin-left:-6px}
+.readout .expl{color:var(--fg-dim);font-size:12.5px;margin-left:auto;text-align:right;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+
+.controls{margin-top:16px;display:grid;gap:13px}
+.ctl{display:grid;grid-template-columns:96px 1fr 62px;align-items:center;gap:12px}
+.ctl label{font-size:13.5px;color:var(--fg-dim)}
+.ctl output{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg);
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;
+}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--fg);margin-top:-6.5px;border:none;cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:15px;height:15px;border-radius:50%;background:var(--fg);border:none;cursor:pointer;
+}
+.side.left input[type=range]::-webkit-slider-thumb{background:var(--amber)}
+.side.left input[type=range]::-moz-range-thumb{background:var(--amber)}
+.side.right input[type=range]::-webkit-slider-thumb{background:var(--cyan)}
+.side.right input[type=range]::-moz-range-thumb{background:var(--cyan)}
+input:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:3px}
+
+.switch-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--fg-dim)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{
+  background:transparent;border:none;color:var(--fg-dim);
+  font:inherit;font-size:13px;padding:5px 13px;cursor:pointer;
+}
+.seg button[aria-pressed=true]{background:var(--panel-2);color:var(--fg)}
+.seg button:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
+.check{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--fg-dim)}
+.check input{accent-color:var(--cyan);width:15px;height:15px}
+
+/* ---- middle ridge ---- */
+.spine{
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 8px 26px;gap:14px;
+  background:linear-gradient(180deg,rgba(240,166,60,.05),rgba(62,200,216,.05));
+}
+.spine .theta-label{font-size:13px;color:var(--fg-dim);text-align:center}
+.spine .theta-val{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:26px;line-height:1;font-variant-numeric:tabular-nums;
+}
+.spine input[type=range]{width:130px}
+.spine input[type=range]::-webkit-slider-thumb{background:var(--fg)}
+.bar{
+  width:52px;flex:1;min-height:190px;
+  border:1px solid var(--line);border-radius:3px;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:#0d1522;
+}
+.bar .seg-sin{background:linear-gradient(180deg,var(--cyan),#2a97a5);transition:height .08s linear}
+.bar .seg-cos{background:linear-gradient(180deg,#c07f22,var(--amber));transition:height .08s linear}
+.bar-key{font-size:11.5px;color:var(--fg-dim);text-align:center;line-height:1.5}
+.bar-key b{font-weight:600}
+.identity{
+  font-size:11.5px;color:var(--fg-dim);text-align:center;line-height:1.7;
+  border-top:1px solid var(--line);padding-top:10px;
+}
+
+/* ---- bottom explanation ---- */
+.notes{
+  border-top:1px solid var(--line);
+  padding:24px 26px 40px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:26px 34px;
+}
+.notes section h3{
+  font-family:Georgia,"Songti SC",serif;font-size:16px;margin:0 0 6px;font-weight:600;
+}
+.notes section p{margin:0;color:var(--fg-dim);font-size:13.5px;max-width:52ch}
+.notes .k-amber{color:var(--amber-soft)}
+.notes .k-cyan{color:var(--cyan-soft)}
+.notes code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px;color:var(--fg);background:var(--panel);padding:1px 5px;border-radius:2px;
+}
+.fallback{padding:40px 26px;color:var(--coral)}
+
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr}
+  .side.left{border-right:none;border-bottom:1px solid var(--line)}
+  .side.right{border-left:none;border-top:1px solid var(--line)}
+  .spine{
+    flex-direction:row;flex-wrap:wrap;justify-content:center;
+    padding:16px 20px;gap:10px 22px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    order:0;
+  }
+  .bar{width:100%;height:26px;min-height:0;flex-direction:row-reverse;flex:1 1 200px}
+  .bar .seg-sin,.bar .seg-cos{height:100%!important;transition:width .08s linear}
+  .identity{border-top:none;padding-top:0;flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+</style>
+<style>
+.backbar{
+  display:flex;align-items:center;gap:.55rem;
+  padding:9px 26px;border-bottom:1px solid var(--line,#2a3c5e);
+  font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+}
+.backbar a{color:#93a4c0;text-decoration:none;border-bottom:1px solid transparent}
+.backbar a:hover{color:#e6ecf5;border-bottom-color:#e6ecf5}
+.backbar .sep{color:#3d5170}
+</style>
+</head>
+<body>
+<div class="backbar">
+  <a href="vectors.html">&larr; Vectors &amp; Space</a>
+  <span class="sep">·</span>
+  <a href="index.html">Mathematics You Can Turn　Home</a>
+</div>
+
+
+<header class="masthead">
+  <h1>Dot Product &amp; Cross Product</h1>
+  <p>The same angle θ, two different physical consequences. Drag to rotate the view, scroll to zoom.</p>
+</header>
+
+<main class="stage">
+
+  <!-- ================= left: dot product ================= -->
+  <div class="side left">
+    <div class="side-head">
+      <h2>Dot Product &middot; Electric Flux</h2>
+      <span class="eq">Φ = <b>E</b> · <b>A</b> = |E||A|cos θ</span>
+    </div>
+    <p class="blurb">An electric field passes through a panel. Only the component along the panel's normal actually "gets through" &mdash; that's exactly a projection. Tilt the panel further and fewer field lines get caught.</p>
+
+    <div class="viewport" id="vpL">
+      <canvas id="cvL"></canvas>
+      <span class="hint">Drag to rotate &middot; scroll to zoom</span>
+    </div>
+
+    <div class="readout">
+      <span class="big" id="fluxVal">0.0</span><span class="unit">N·m²/C</span>
+      <span class="expl" id="fluxExpr">E·A·cosθ</span>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sE">Field strength E</label>
+        <input type="range" id="sE" min="1" max="5" step="0.1" value="3">
+        <output id="oE">3.0</output>
+      </div>
+      <div class="ctl">
+        <label for="sR">Panel radius</label>
+        <input type="range" id="sR" min="0.5" max="1.8" step="0.05" value="1.1">
+        <output id="oR">1.10</output>
+      </div>
+      <div class="switch-row">
+        <label class="check"><input type="checkbox" id="cShadow" checked> Show effective area A cos θ</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= middle ridge ================= -->
+  <div class="spine">
+    <div class="theta-label">angle θ<br><span style="font-size:11.5px">shared by both sides</span></div>
+    <div class="theta-val" id="thetaVal">55°</div>
+    <input type="range" id="sTheta" min="0" max="180" step="1" value="55"
+           aria-label="angle θ, shared by both demos">
+    <div class="bar" aria-hidden="true">
+      <div class="seg-sin" id="barSin" style="height:67%"></div>
+      <div class="seg-cos" id="barCos" style="height:33%"></div>
+    </div>
+    <div class="bar-key">
+      <b class="k-cyan" style="color:var(--cyan-soft)">sin&sup2;θ</b> belongs to the cross product<br>
+      <b style="color:var(--amber-soft)">cos&sup2;θ</b> belongs to the dot product
+    </div>
+    <div class="identity">
+      (<b>a</b>·<b>b</b>)² + |<b>a</b>×<b>b</b>|²<br>= |<b>a</b>|²|<b>b</b>|²
+    </div>
+  </div>
+
+  <!-- ================= right: cross product ================= -->
+  <div class="side right">
+    <div class="side-head">
+      <h2>Cross Product &middot; Lorentz Force</h2>
+      <span class="eq">F = q <b>v</b> × <b>B</b>，|F| = q|v||B|sin θ</span>
+    </div>
+    <p class="blurb">A charged particle feels a force in a magnetic field. The velocity component along the field feels no force at all &mdash; only the perpendicular component gets deflected. That's exactly the cross product picking out "the part that spreads apart."</p>
+
+    <div class="viewport" id="vpR">
+      <canvas id="cvR"></canvas>
+      <span class="hint">Drag to rotate &middot; scroll to zoom</span>
+    </div>
+
+    <div class="readout">
+      <span class="big" id="forceVal">0.0</span><span class="unit">N</span>
+      <span class="expr expl" id="forceExpr">q·v·B·sinθ</span>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sB">Magnetic field B</label>
+        <input type="range" id="sB" min="1" max="5" step="0.1" value="2.5">
+        <output id="oB">2.5</output>
+      </div>
+      <div class="ctl">
+        <label for="sV">Speed |v|</label>
+        <input type="range" id="sV" min="0.6" max="2.4" step="0.05" value="1.6">
+        <output id="oV">1.60</output>
+      </div>
+      <div class="switch-row">
+        <span>Charge</span>
+        <span class="seg" role="group" aria-label="charge sign">
+          <button id="qPos" aria-pressed="true">Positive +q</button>
+          <button id="qNeg" aria-pressed="false">Negative &minus;q</button>
+        </span>
+        <label class="check"><input type="checkbox" id="cTrail"> Release a particle to see its path</label>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="notes">
+  <section>
+    <h3 class="k-amber">The dot product takes cos: energy &amp; flux</h3>
+    <p>Any quantity asking "how much lands along this direction" is a dot product. Work <code>W = F&middot;d</code> only counts the force along the displacement; electric flux <code>Φ = E&middot;A</code> only counts the field that actually pierces the panel. Gauss's law <code>&oint;E&middot;dA = Q/ε&#8320;</code> can recover the enclosed charge precisely because of this projection.</p>
+  </section>
+  <section>
+    <h3 class="k-cyan">The cross product takes sin: rotation &amp; deflection</h3>
+    <p>Any quantity asking "how much spread, or rotating about what" is a cross product. The Lorentz force <code>F = qv&times;B</code> is always perpendicular to velocity, so it only ever changes direction, never speed &mdash; a magnetic field never does work on a moving charge. Torque <code>τ = r&times;F</code>, angular momentum <code>L = r&times;p</code>, and the Poynting vector <code>S = E&times;H</code> all follow the same logic.</p>
+  </section>
+  <section>
+    <h3>The two are exact complements</h3>
+    <p>Drag θ to 0°: flux on the left is maximal, force on the right is zero. Drag to 90°: flux is zero, force is maximal. The bar in the middle showing <code>cos&sup2;θ + sin&sup2;θ = 1</code> is the conservation law behind this &mdash; the two products split every bit of information between a pair of vectors, cleanly, with nothing left over and nothing double-counted.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+"use strict";
+
+if (typeof THREE === "undefined") {
+  document.querySelector(".stage").innerHTML =
+    '<div class="fallback">The 3D library failed to load. Check your connection and refresh.</div>';
+  return;
+}
+
+var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var COL = {
+  amber:0xf0a63c, amberSoft:0xf7c579, cyan:0x3ec8d8, cyanSoft:0x8fe3ed,
+  violet:0xb388ff, coral:0xef6a5e, blue:0x5aa9f0,
+  dim:0x3d5170, faint:0x24334e, fg:0xe6ecf5, panel:0x101a2a
+};
+
+/* ---------- general utilities ---------- */
+
+function makeArrow(color, shaftR, headLen, headR) {
+  shaftR = shaftR || 0.028; headLen = headLen || 0.20; headR = headR || 0.075;
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({color:color, roughness:0.45, metalness:0.05});
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(shaftR, shaftR, 1, 14), mat);
+  var head  = new THREE.Mesh(new THREE.ConeGeometry(headR, headLen, 18), mat);
+  g.add(shaft); g.add(head);
+  g.userData = {shaft:shaft, head:head, headLen:headLen, mat:mat};
+  g.setVec = function (origin, dir, len) {
+    var d = dir.clone();
+    if (d.lengthSq() < 1e-12 || len < 1e-6) { this.visible = false; return; }
+    this.visible = true;
+    d.normalize();
+    var hl = Math.min(this.userData.headLen, len * 0.45);
+    var sl = Math.max(len - hl, 1e-4);
+    this.userData.shaft.scale.set(1, sl, 1);
+    this.userData.shaft.position.set(0, sl / 2, 0);
+    this.userData.head.scale.set(1, hl / this.userData.headLen, 1);
+    this.userData.head.position.set(0, sl + hl / 2, 0);
+    this.position.copy(origin);
+    this.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+  };
+  return g;
+}
+
+function makeLabel(text, colorCSS, scale) {
+  scale = scale || 1;
+  var c = document.createElement("canvas");
+  c.width = 256; c.height = 96;
+  var x = c.getContext("2d");
+  x.font = "bold 60px -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.shadowColor = "rgba(0,0,0,.85)"; x.shadowBlur = 12;
+  x.fillStyle = colorCSS;
+  x.fillText(text, 128, 50);
+  var t = new THREE.CanvasTexture(c);
+  t.minFilter = THREE.LinearFilter;
+  var s = new THREE.Sprite(new THREE.SpriteMaterial({map:t, transparent:true, depthTest:false}));
+  s.scale.set(0.62 * scale, 0.23 * scale, 1);
+  s.renderOrder = 999;
+  return s;
+}
+
+function dashedLine(color, opacity) {
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+  var mat = new THREE.LineDashedMaterial({
+    color:color, dashSize:0.13, gapSize:0.09, transparent:true, opacity:opacity || 0.85
+  });
+  var l = new THREE.Line(geo, mat);
+  l.setEnds = function (a, b) {
+    var p = this.geometry.attributes.position;
+    p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z);
+    p.needsUpdate = true;
+    this.geometry.computeBoundingSphere();
+    this.computeLineDistances();
+  };
+  return l;
+}
+
+function quadMesh(color, opacity) {
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3));
+  geo.setIndex([0,1,2, 0,2,3]);
+  var mat = new THREE.MeshBasicMaterial({
+    color:color, transparent:true, opacity:opacity, side:THREE.DoubleSide, depthWrite:false
+  });
+  var m = new THREE.Mesh(geo, mat);
+  m.setCorners = function (a, b, c, d) {
+    var p = this.geometry.attributes.position;
+    p.setXYZ(0,a.x,a.y,a.z); p.setXYZ(1,b.x,b.y,b.z);
+    p.setXYZ(2,c.x,c.y,c.z); p.setXYZ(3,d.x,d.y,d.z);
+    p.needsUpdate = true;
+    this.geometry.computeVertexNormals();
+    this.geometry.computeBoundingSphere();
+  };
+  return m;
+}
+
+/* Custom orbit controls (this build of three.js ships without OrbitControls) */
+function orbit(dom, camera, target, opts) {
+  var st = {az:opts.az, pol:opts.pol, r:opts.r};
+  var min = opts.min || 3, max = opts.max || 16;
+  function apply() {
+    st.pol = Math.max(0.12, Math.min(Math.PI - 0.12, st.pol));
+    st.r = Math.max(min, Math.min(max, st.r));
+    camera.position.set(
+      target.x + st.r * Math.sin(st.pol) * Math.cos(st.az),
+      target.y + st.r * Math.cos(st.pol),
+      target.z + st.r * Math.sin(st.pol) * Math.sin(st.az)
+    );
+    camera.lookAt(target);
+  }
+  var drag = false, lx = 0, ly = 0;
+  dom.addEventListener("pointerdown", function (e) {
+    drag = true; lx = e.clientX; ly = e.clientY;
+    dom.setPointerCapture(e.pointerId);
+  });
+  dom.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    st.az -= (e.clientX - lx) * 0.0075;
+    st.pol -= (e.clientY - ly) * 0.0075;
+    lx = e.clientX; ly = e.clientY;
+    apply();
+  });
+  function stop(e) {
+    drag = false;
+    if (e.pointerId !== undefined && dom.hasPointerCapture && dom.hasPointerCapture(e.pointerId))
+      dom.releasePointerCapture(e.pointerId);
+  }
+  dom.addEventListener("pointerup", stop);
+  dom.addEventListener("pointercancel", stop);
+  dom.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    st.r *= (1 + Math.sign(e.deltaY) * 0.09);
+    apply();
+  }, {passive:false});
+  apply();
+  return {apply:apply, state:st};
+}
+
+function makeStage(canvasId, wrapId, camOpts) {
+  var canvas = document.getElementById(canvasId);
+  var wrap = document.getElementById(wrapId);
+  var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(42, 4/3, 0.1, 100);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+  var d1 = new THREE.DirectionalLight(0xffffff, 0.75); d1.position.set(4, 6, 5); scene.add(d1);
+  var d2 = new THREE.DirectionalLight(0x88aaff, 0.28); d2.position.set(-5, -2, -4); scene.add(d2);
+  var target = camOpts.target || new THREE.Vector3(0, 0, 0);
+  var ctrl = orbit(wrap, camera, target, camOpts);
+  function resize() {
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+  setTimeout(resize, 0);
+  return {scene:scene, camera:camera, renderer:renderer, resize:resize, ctrl:ctrl};
+}
+
+/* Faint reference grid (ground plane), gives rotation a spatial anchor */
+function refGrid(size, div) {
+  var g = new THREE.GridHelper(size, div, COL.dim, COL.faint);
+  g.material.transparent = true; g.material.opacity = 0.34;
+  return g;
+}
+
+/* =======================================================
+   left scene: electric flux Φ = E . A
+   field points along +x; panel normal n = (cos θ, sin θ, 0)
+   ======================================================= */
+var L = makeStage("cvL", "vpL", {az:0.62, pol:1.16, r:7.4, min:3.6, max:14,
+                                 target:new THREE.Vector3(0, 0, 0)});
+L.scene.add(refGrid(8, 16).translateY(-2.2));
+
+var LINE_N = 0, lineSlots = [], flowDots = [];
+(function buildFieldLines() {
+  var pts = [];
+  for (var i = -2; i <= 2; i++) {
+    for (var j = -2; j <= 2; j++) {
+      var y = i * 0.62, z = j * 0.62;
+      if (y*y + z*z <= 1.72*1.72) pts.push([y, z]);
+    }
+  }
+  LINE_N = pts.length;
+  var X0 = -3.1, X1 = 3.1;
+  for (var k = 0; k < LINE_N; k++) {
+    var y = pts[k][0], z = pts[k][1];
+    var geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(X0, y, z), new THREE.Vector3(X1, y, z)
+    ]);
+    var mat = new THREE.LineBasicMaterial({color:COL.dim, transparent:true, opacity:0.5});
+    var ln = new THREE.Line(geo, mat);
+    L.scene.add(ln);
+    var dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 10, 10),
+      new THREE.MeshBasicMaterial({color:COL.dim})
+    );
+    dot.position.set(X0 + Math.random() * (X1 - X0), y, z);
+    L.scene.add(dot);
+    lineSlots.push({line:ln, y:y, z:z, hit:false});
+    flowDots.push(dot);
+  }
+})();
+
+var plate = new THREE.Mesh(
+  new THREE.CircleGeometry(1, 64),
+  new THREE.MeshStandardMaterial({
+    color:0xf0a63c, transparent:true, opacity:0.30, side:THREE.DoubleSide,
+    roughness:0.6, metalness:0.0, emissive:0x3a2408
+  })
+);
+var plateRim = new THREE.Mesh(
+  new THREE.TorusGeometry(1, 0.018, 8, 64),
+  new THREE.MeshBasicMaterial({color:COL.amberSoft})
+);
+plate.add(plateRim);
+L.scene.add(plate);
+
+var shadow = new THREE.Mesh(
+  new THREE.CircleGeometry(1, 64),
+  new THREE.MeshBasicMaterial({color:COL.amber, transparent:true, opacity:0.20, side:THREE.DoubleSide})
+);
+shadow.rotation.y = Math.PI / 2;
+L.scene.add(shadow);
+
+var nArrow = makeArrow(COL.amberSoft, 0.026, 0.20, 0.075); L.scene.add(nArrow);
+var eArrow = makeArrow(COL.blue, 0.030, 0.24, 0.09); L.scene.add(eArrow);
+var lblN = makeLabel("n", "#f7c579"); L.scene.add(lblN);
+var lblE = makeLabel("E", "#5aa9f0"); L.scene.add(lblE);
+var lblA = makeLabel("A cos θ", "#f0a63c", 0.95); L.scene.add(lblA);
+var thetaArcL = new THREE.Line(
+  new THREE.BufferGeometry(),
+  new THREE.LineBasicMaterial({color:0xcfd9e8, transparent:true, opacity:0.8})
+);
+L.scene.add(thetaArcL);
+
+function arcPoints(v1, v2, radius, n) {
+  var a = v1.clone().normalize();
+  var b = v2.clone().normalize();
+  var ang = Math.acos(Math.max(-1, Math.min(1, a.dot(b))));
+  var perp = b.clone().sub(a.clone().multiplyScalar(a.dot(b)));
+  if (perp.lengthSq() < 1e-9) return [];
+  perp.normalize();
+  var out = [];
+  for (var i = 0; i <= n; i++) {
+    var t = ang * i / n;
+    out.push(a.clone().multiplyScalar(Math.cos(t) * radius)
+              .add(perp.clone().multiplyScalar(Math.sin(t) * radius)));
+  }
+  return out;
+}
+
+/* =======================================================
+   right scene: Lorentz force F = q v x B
+   B along +z (three.js uses +y as vertical, so B is placed along +y here)
+   angle between v and B is θ
+   ======================================================= */
+var R = makeStage("cvR", "vpR", {az:0.95, pol:1.20, r:7.0, min:3.4, max:14,
+                                 target:new THREE.Vector3(0, 0.3, 0)});
+R.scene.add(refGrid(8, 16).translateY(-2.2));
+
+/* sparse B field lines (vertical) */
+(function buildBField() {
+  for (var i = -1; i <= 1; i++) {
+    for (var j = -1; j <= 1; j++) {
+      if (i === 0 && j === 0) continue;
+      var geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(i * 1.5, -2.1, j * 1.5),
+        new THREE.Vector3(i * 1.5,  2.1, j * 1.5)
+      ]);
+      R.scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
+        color:COL.cyan, transparent:true, opacity:0.16
+      })));
+    }
+  }
+})();
+
+var bArrow = makeArrow(COL.cyan, 0.030, 0.24, 0.09); R.scene.add(bArrow);
+var vArrow = makeArrow(COL.blue, 0.030, 0.24, 0.09); R.scene.add(vArrow);
+var fArrow = makeArrow(COL.violet, 0.032, 0.26, 0.10); R.scene.add(fArrow);
+var lblB = makeLabel("B", "#8fe3ed"); R.scene.add(lblB);
+var lblV = makeLabel("v", "#5aa9f0"); R.scene.add(lblV);
+var lblF = makeLabel("F", "#b388ff"); R.scene.add(lblF);
+var lblPerp = makeLabel("v⊥", "#93a4c0", 0.8); R.scene.add(lblPerp);
+var lblPara = makeLabel("v∥", "#93a4c0", 0.8); R.scene.add(lblPara);
+
+var quad = quadMesh(COL.violet, 0.22); R.scene.add(quad);
+var quadEdge = new THREE.LineLoop(
+  new THREE.BufferGeometry().setAttribute("position",
+    new THREE.BufferAttribute(new Float32Array(12), 3)),
+  new THREE.LineBasicMaterial({color:COL.violet, transparent:true, opacity:0.6})
+);
+R.scene.add(quadEdge);
+
+var dashPara = dashedLine(0x93a4c0, 0.8); R.scene.add(dashPara);
+var dashPerp = dashedLine(0x93a4c0, 0.8); R.scene.add(dashPerp);
+var thetaArcR = new THREE.Line(
+  new THREE.BufferGeometry(),
+  new THREE.LineBasicMaterial({color:0xcfd9e8, transparent:true, opacity:0.8})
+);
+R.scene.add(thetaArcR);
+
+/* particle and trail */
+var TRAIL_MAX = 900;
+var trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(TRAIL_MAX * 3), 3));
+trailGeo.setDrawRange(0, 0);
+var trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({color:COL.cyanSoft}));
+R.scene.add(trail);
+var particle = new THREE.Mesh(
+  new THREE.SphereGeometry(0.08, 16, 16),
+  new THREE.MeshStandardMaterial({color:COL.cyanSoft, emissive:0x1d4a52, roughness:0.35})
+);
+particle.visible = false;
+R.scene.add(particle);
+var trailCount = 0, tSim = 0;
+
+/* =======================================================
+   state and updates
+   ======================================================= */
+var S = {theta:55, E:3.0, Rp:1.1, B:2.5, V:1.6, q:1, shadow:true, trail:false};
+
+function $(id) { return document.getElementById(id); }
+
+function updateLeft() {
+  var th = S.theta * Math.PI / 180;
+  var n = new THREE.Vector3(Math.cos(th), Math.sin(th), 0);
+  var area = Math.PI * S.Rp * S.Rp;
+  var flux = S.E * area * Math.cos(th);
+
+  plate.scale.set(S.Rp, S.Rp, 1);
+  plate.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+  plateRim.scale.set(1, 1, 1);
+
+  shadow.visible = S.shadow;
+  shadow.position.set(-2.75, 0, 0);
+  shadow.scale.set(S.Rp, S.Rp * Math.abs(Math.cos(th)), 1);
+
+  nArrow.setVec(new THREE.Vector3(0, 0, 0), n, 1.5);
+  eArrow.setVec(new THREE.Vector3(0, -1.65, 0), new THREE.Vector3(1, 0, 0), 2.0);
+  lblN.position.copy(n).multiplyScalar(1.78);
+  lblE.position.set(1.15, -1.62, 0.30);
+  lblA.position.set(-2.75, -S.Rp * Math.abs(Math.cos(th)) - 0.30, 0);
+  lblA.visible = S.shadow;
+
+  var pts = arcPoints(n, new THREE.Vector3(1, 0, 0), 0.85, 36);
+  thetaArcL.geometry.dispose();
+  thetaArcL.geometry = new THREE.BufferGeometry().setFromPoints(pts.length ? pts : [
+    new THREE.Vector3(), new THREE.Vector3()
+  ]);
+
+  /* test whether each field line crosses the panel: intersect the line (x, y0, z0) with the plane n.r = 0 */
+  var hits = 0;
+  for (var i = 0; i < lineSlots.length; i++) {
+    var s = lineSlots[i], through = false;
+    if (Math.abs(n.x) > 1e-3) {
+      var xi = -(n.y * s.y + n.z * s.z) / n.x;
+      if (Math.abs(xi) < 3.1) {
+        /* distance from the intersection to the panel centre (the point necessarily lies in the panel's plane) */
+        var P = new THREE.Vector3(xi, s.y, s.z);
+        if (P.length() <= S.Rp + 1e-6) through = true;
+      }
+    }
+    s.hit = through;
+    if (through) hits++;
+    s.line.material.color.setHex(through ? COL.amber : COL.dim);
+    s.line.material.opacity = through ? 0.95 : 0.28;
+    flowDots[i].material.color.setHex(through ? COL.amberSoft : COL.dim);
+    flowDots[i].material.opacity = through ? 1 : 0.4;
+    flowDots[i].material.transparent = true;
+  }
+
+  $("fluxVal").textContent = flux.toFixed(1);
+  $("fluxExpr").textContent =
+    S.E.toFixed(1) + " × " + area.toFixed(2) + " × cos " + S.theta + "° · " + hits + " lines through";
+}
+
+function updateRight() {
+  var th = S.theta * Math.PI / 180;
+  var B = new THREE.Vector3(0, 1, 0);
+  var v = new THREE.Vector3(Math.sin(th), Math.cos(th), 0);
+  var O = new THREE.Vector3(0, 0, 0);
+
+  var vLen = S.V * 1.15, bLen = S.B * 0.42;
+  var vVec = v.clone().multiplyScalar(vLen);
+  var bVec = B.clone().multiplyScalar(bLen);
+
+  var F = new THREE.Vector3().crossVectors(v.clone().multiplyScalar(S.V),
+                                           B.clone().multiplyScalar(S.B))
+                             .multiplyScalar(S.q);
+  var fMag = F.length();
+
+  bArrow.setVec(O, B, bLen);
+  vArrow.setVec(O, v, vLen);
+  fArrow.setVec(O, F, Math.min(fMag * 0.34, 2.2));
+  fArrow.visible = fMag > 1e-3;
+
+  lblB.position.copy(bVec).add(new THREE.Vector3(0.18, 0.24, 0));
+  lblV.position.copy(vVec).add(new THREE.Vector3(0.22, 0.16, 0));
+  lblF.position.copy(F).normalize().multiplyScalar(Math.min(fMag * 0.34, 2.2) + 0.28);
+  lblF.visible = fMag > 1e-3;
+
+  quad.setCorners(O, vVec, vVec.clone().add(bVec), bVec);
+  var ep = quadEdge.geometry.attributes.position;
+  var corners = [O, vVec, vVec.clone().add(bVec), bVec];
+  for (var i = 0; i < 4; i++) ep.setXYZ(i, corners[i].x, corners[i].y, corners[i].z);
+  ep.needsUpdate = true;
+  quadEdge.geometry.computeBoundingSphere();
+  var showGeom = !S.trail;
+  quad.visible = showGeom; quadEdge.visible = showGeom;
+
+  /* parallel / perpendicular decomposition of v */
+  var vPara = B.clone().multiplyScalar(vLen * Math.cos(th));
+  var vPerp = new THREE.Vector3(vLen * Math.sin(th), 0, 0);
+  dashPara.setEnds(vVec, vPara);
+  dashPerp.setEnds(vVec, vPerp);
+  lblPara.position.copy(vPara).add(new THREE.Vector3(-0.30, 0.02, 0));
+  lblPerp.position.copy(vPerp).add(new THREE.Vector3(0.05, -0.28, 0));
+  dashPara.visible = dashPerp.visible = lblPara.visible = lblPerp.visible = showGeom;
+
+  var pts = arcPoints(v, B, 0.75, 36);
+  thetaArcR.geometry.dispose();
+  thetaArcR.geometry = new THREE.BufferGeometry().setFromPoints(pts.length ? pts : [
+    new THREE.Vector3(), new THREE.Vector3()
+  ]);
+  thetaArcR.visible = showGeom;
+
+  $("forceVal").textContent = fMag.toFixed(2);
+  $("forceExpr").textContent = (S.q > 0 ? "+q" : "−q") + " × " + S.V.toFixed(2) +
+    " × " + S.B.toFixed(1) + " × sin " + S.theta + "°";
+}
+
+function updateSpine() {
+  var th = S.theta * Math.PI / 180;
+  var c2 = Math.cos(th) * Math.cos(th), s2 = 1 - c2;
+  $("thetaVal").textContent = S.theta + "°";
+  if (window.innerWidth <= 900) {
+    $("barCos").style.width = (c2 * 100).toFixed(1) + "%";
+    $("barSin").style.width = (s2 * 100).toFixed(1) + "%";
+    $("barCos").style.height = "100%"; $("barSin").style.height = "100%";
+  } else {
+    $("barCos").style.height = (c2 * 100).toFixed(1) + "%";
+    $("barSin").style.height = (s2 * 100).toFixed(1) + "%";
+    $("barCos").style.width = "100%"; $("barSin").style.width = "100%";
+  }
+}
+
+function updateAll() { updateLeft(); updateRight(); updateSpine(); }
+
+/* ---------- control bindings ---------- */
+function bind(id, out, key, fmt) {
+  var el = $(id);
+  el.addEventListener("input", function () {
+    S[key] = parseFloat(el.value);
+    if (out) $(out).textContent = fmt(S[key]);
+    updateAll();
+  });
+  if (out) $(out).textContent = fmt(S[key]);
+}
+bind("sE", "oE", "E", function (v) { return v.toFixed(1); });
+bind("sR", "oR", "Rp", function (v) { return v.toFixed(2); });
+bind("sB", "oB", "B", function (v) { return v.toFixed(1); });
+bind("sV", "oV", "V", function (v) { return v.toFixed(2); });
+
+$("sTheta").addEventListener("input", function () {
+  S.theta = parseInt(this.value, 10);
+  resetTrail();
+  updateAll();
+});
+$("cShadow").addEventListener("change", function () { S.shadow = this.checked; updateLeft(); });
+$("cTrail").addEventListener("change", function () {
+  S.trail = this.checked;
+  particle.visible = this.checked;
+  trail.visible = this.checked;
+  resetTrail();
+  updateRight();
+});
+function setCharge(q) {
+  S.q = q;
+  $("qPos").setAttribute("aria-pressed", q > 0 ? "true" : "false");
+  $("qNeg").setAttribute("aria-pressed", q < 0 ? "true" : "false");
+  resetTrail();
+  updateRight();
+}
+$("qPos").addEventListener("click", function () { setCharge(1); });
+$("qNeg").addEventListener("click", function () { setCharge(-1); });
+
+function resetTrail() { trailCount = 0; tSim = 0; trailGeo.setDrawRange(0, 0); }
+
+/* ---------- main loop ---------- */
+var clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  var dt = Math.min(clock.getDelta(), 0.05);
+
+  if (!REDUCED) {
+    /* left: dots on the field lines flow with E */
+    for (var i = 0; i < flowDots.length; i++) {
+      var d = flowDots[i];
+      d.position.x += S.E * 0.42 * dt;
+      if (d.position.x > 3.1) d.position.x = -3.1;
+    }
+    /* right: particle spiral */
+    if (S.trail) {
+      var th = S.theta * Math.PI / 180;
+      var vPerp = S.V * Math.sin(th), vPara = S.V * Math.cos(th);
+      var w = S.q * S.B * 0.9;                    /* cyclotron angular frequency ω = qB/m, taking m=1 */
+      tSim += dt * 0.9;
+      var px, py, pz;
+      if (Math.abs(w) < 1e-4) {
+        px = vPerp * tSim; pz = 0;
+      } else {
+        var r = vPerp / w;
+        px = r * Math.sin(w * tSim);
+        pz = -r * (Math.cos(w * tSim) - 1);
+      }
+      py = vPara * tSim;
+      if (Math.abs(px) > 6 || Math.abs(py) > 4 || Math.abs(pz) > 6) resetTrail();
+      particle.position.set(px, py, pz);
+      if (trailCount < TRAIL_MAX) {
+        trailGeo.attributes.position.setXYZ(trailCount, px, py, pz);
+        trailCount++;
+        trailGeo.setDrawRange(0, trailCount);
+        trailGeo.attributes.position.needsUpdate = true;
+        trailGeo.computeBoundingSphere();
+      } else {
+        resetTrail();
+      }
+    }
+  }
+
+  L.renderer.render(L.scene, L.camera);
+  R.renderer.render(R.scene, R.camera);
+}
+
+window.addEventListener("resize", updateSpine);
+particle.visible = false; trail.visible = false;
+updateAll();
+L.resize(); R.resize();
+tick();
+
+})();
+</script>
+</body>
+</html>
