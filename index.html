@@ -8,7 +8,7 @@
 	<head>
 		<title>Mathematics You Can Turn</title>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="description" content="Maths retold with 3D graphics and interactive demos: vectors, matrices, gradients, least squares, neural networks, and fractals." />
 		<link rel="stylesheet" href="assets/css/main.css" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
@@ -38,6 +38,7 @@
 							<li><a href="fractals.html">Fractals &amp; Dimension</a></li>
 							<li><a href="solar-tracker.html">Build · That First Twitch</a></li>
 							<li><a href="servo-calib.html">Build · Servo Calibration</a></li>
+							<li><a href="https://enginmath.github.io" hreflang="zh-CN">中文版 &nbsp;Chinese</a></li>
 						</ul>
 						<ul class="actions stacked">
 							<li><a href="vectors.html" class="button primary fit">Start with Vectors</a></li>
@@ -189,12 +190,12 @@
 										</div>
 									</div>
 									<ul class="actions">
-										<button type="button" class="primary" onclick="sendMail()">Send it over</button>
+										<li><button type="button" class="button primary" onclick="sendMail()">Send it over</button></li>
 										<li><input type="reset" value="Clear" /></li>
 									</ul>
 								</form>
 							</section>
-							<section style="display:flex !important; flex-direction:column !important; justify-content:center !important; min-height:60vh; gap:2.5rem;">
+							<section class="contact-list">
 								<div class="contact-method">
 									<span class="icon solid alt fa-envelope"></span>
 									<h3>Email</h3>
@@ -208,7 +209,7 @@
 								<div class="contact-method">
 									<span class="icon solid alt fa-language"></span>
 									<h3>Chinese Site</h3>
-									<a href="https://enginmath.github.io">enginmath.github.io</a>
+									<a href="https://enginmath.github.io" hreflang="zh-CN">enginmath.github.io</a>
 								</div>
 							</section>
 						</div>
@@ -218,12 +219,12 @@
 					<footer id="footer">
 						<div class="inner">
 							<ul class="icons">
-								<li><a href="#" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+								<li><a href="https://github.com/mosaicino" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
 								<li><a href="mailto:oiccamille@outlook.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li>
 							</ul>
 							<ul class="copyright">
 								<li>&copy; Mathematics You Can Turn</li>
-								<li>Design & Code: Mosaicino</li>
+								<li>Design &amp; Code: Mosaicino</li>
 								<li>Template: <a href="https://html5up.net">HTML5 UP</a></li>
 							</ul>
 						</div>
@@ -245,11 +246,13 @@
 					var email = document.getElementById('email').value;
 					var message = document.getElementById('message').value;
 					var body =
-						"Name: " + name + "%0D%0A" +
-						"Email: " + email + "%0D%0A" +
+						"Name: " + name + "\n" +
+						"Email: " + email + "\n" +
 						"Message: " + message;
 					window.location.href =
-						"mailto:oiccamille@outlook.com?subject=Message from the site&body=" + body;
+						"mailto:oiccamille@outlook.com" +
+						"?subject=" + encodeURIComponent("Message from the site") +
+						"&body=" + encodeURIComponent(body);
 				}
 			</script>
 	</body>
